@@ -22,28 +22,26 @@
 #
 # NAME
 #
-#    h2n      - Translate host table to name server file format
-#    delegate - Create/check delegation information (zone linkage)
+#    h2n.p6      - Translate host table to name server file format
+#    delegate.p6 - Create/check delegation information (zone linkage)
 #
 # SYNOPSIS
 #
-#    h2n      -d DOMAIN -n NET -u CONTACT [options]
-#    delegate -d DOMAIN -n NET -u CONTACT [options]
+#    h2n.p6      -d DOMAIN -n NET -u CONTACT [options]
+#    delegate.p6 -d DOMAIN -n NET -u CONTACT [options]
 #
 
-use strict;
-use warnings;
-use Cwd;		# for calling `getcwd'
-use FileHandle;		# for calling `autoflush'
-use Symbol;		# for calling `qualify'
-use Sys::Hostname;	# for calling `hostname'
+#use Cwd;		# for calling `getcwd'
+#use FileHandle;		# for calling `autoflush'
+#use Symbol;		# for calling `qualify'
+#use Sys::Hostname;	# for calling `hostname'
 
 # Various defaults
 #
 my $VERSION = "2.61rc8";
 my $Program = $0;
-   $Program =~ s/.*\///;
-my $Delegate = ($Program =~ /delegate/ ? 1 : 0);
+   $Program ~~ s/.*\///;
+my $Delegate = ($Program ~~ /delegate/ ? 1 : 0);
 my $Host = hostname();
 my $Do_CNAME = 1;
 my $Do_MX = "[mx]";
@@ -344,7 +342,7 @@ $Audit = 0 if $Delegate;	# Prevent the following warning message if we
 				# version 9.0.0 happens to be in operation.
 
 if ($DiG_Version_Num == 90000 && ($Verify_Mode || $Audit)) {
-    ($Output_Msg = <<'EOT') =~ s/^\s+\|//gm;
+    ($Output_Msg = <<'EOT') ~~ s/^\s+\|//gm;
     |
     |The DiG utility found by `h2n' is version 9.0. It is unsupported
     |due to its inability to echo batch file input.  Please replace it
@@ -405,9 +403,9 @@ if ($Delegate) {		# If called as "delegate" or with -D
 # "-h" option and issue any warnings about known vulnerabilities.
 #
 if ($BIND_Ver_Msg) {
-    ($Temp = $RespHost) =~ s/[.]$//;
-    $BIND_Ver_Msg       =~ s/ See /See /;
-    $BIND_Ver_Msg       =~ s/     </    </g;
+    ($Temp = $RespHost) ~~ s/[.]$//;
+    $BIND_Ver_Msg       ~~ s/ See /See /;
+    $BIND_Ver_Msg       ~~ s/     </    </g;
     print STDERR "\nWarning: $Temp (-h option) is running BIND ",
 		     "$BIND_Version.\n",
 		     "This version of BIND may be vulnerable to the ",
@@ -471,7 +469,7 @@ if ($Audit && $Verbose) {
     AUDIT_RRs(0);
 }
 if (($Load_Status == 2 && $DefAction eq "Skipping") || $Load_Status > 2) {
-    ($Output_Msg = <<'EOT') =~ s/^\s+\|//gm;
+    ($Output_Msg = <<'EOT') ~~ s/^\s+\|//gm;
     |Attention! One or more of the above errors is sufficiently severe to
     |           either prevent the zone from being loaded or the bad data
     |           may cause interoperability problems with other name servers.
@@ -569,14 +567,14 @@ sub HOSTS_TO_RRs {
 	$comment = '' unless defined($comment);	# interesting bits.
 	($addr, $names) = split(' ', $data, 2);	# Isolate IP addr. from name(s).
 	$addr = '' unless defined($addr);	# Catch leading space typos.
-	if ($addr =~ /$IPv4_pattern/o) {
+	if ($addr ~~ /$IPv4_pattern/o) {
 	    $message = "";
 	} elsif ($addr !~ /:/) {
 	    #
 	    # The IPv4 address was incorrectly formatted.
 	    #
 	    $message = 'IPv4 address';
-	} elsif ($addr =~ /$IPv6_pattern/io) {
+	} elsif ($addr ~~ /$IPv6_pattern/io) {
 	    #
 	    # Allow the valid IPv6 address to pass but
 	    # do not process the entry any further until
@@ -589,11 +587,11 @@ sub HOSTS_TO_RRs {
 	    #
 	    $message = 'IPv6 address';
 	}
-	if ($message || !defined($names) || $names =~ /^\s*$/) {
+	if ($message || !defined($names) || $names ~~ /^\s*$/) {
 	    if ($Verbose) {
-		if ($message && (!defined($names) || $names =~ /^\s*$/)) {
+		if ($message && (!defined($names) || $names ~~ /^\s*$/)) {
 		    $message = "data";
-		} elsif (!$message && (!defined($names) || $names =~ /^\s*$/)) {
+		} elsif (!$message && (!defined($names) || $names ~~ /^\s*$/)) {
 		    $message = "hostname field";
 		}
 		print STDERR "Line $line_num: ",
@@ -613,11 +611,11 @@ sub HOSTS_TO_RRs {
 	    # a -c or -p domain, exit this loop and continue processing.
 	    # Otherwise, fetch the next host file entry.
 	    #
-	    last if $names =~ /$e_Opt_Pat_Exceptions{$netpat}/i;
+	    last if $names ~~ /$e_Opt_Pat_Exceptions{$netpat}/i;
 	    next LINE;
 	}
 
-	if ($comment =~ /\[\s*ttl\s*=\s*(\d+|(\d+[wdhms])+)\s*\]/i) {
+	if ($comment ~~ /\[\s*ttl\s*=\s*(\d+|(\d+[wdhms])+)\s*\]/i) {
 	    $ttl = $1;				# set TTL if explicit
 	    if ($Need_Numeric_Ttl) {		# and convert time
 		$ttl = SECONDS($ttl);		# format if necessary
@@ -669,14 +667,14 @@ sub HOSTS_TO_RRs {
 	    next if $names !~ /[.]$netpat(?:\s|$)/i;
 	    next LINE if $addr eq $Localhost;
 	    $cmode = $c_Opt_Spec{$netpat}{MODE};
-	    if ($cmode =~ /O/) {
+	    if ($cmode ~~ /O/) {
 		#
 		# The matched domain is a parent domain of the default
 		# domain (-d option).  Make sure to override -c option
 		# processing if the current host file entry also matches
 		# the -d option domain.
 		#
-		if ($names =~ /$Domain_Pattern(?:\s|$)/io) {
+		if ($names ~~ /$Domain_Pattern(?:\s|$)/io) {
 		    $cmode = "";
 		    last;
 		}
@@ -719,7 +717,7 @@ sub HOSTS_TO_RRs {
 	    #       added by sed(1) or awk(1) [or perl(1)].
 	    #
 	    if (@aliases) {
-		$data = ($cmode =~ /I/) ? $Domain : $c_opt_domain;
+		$data = ($cmode ~~ /I/) ? $Domain : $c_opt_domain;
 		if (lc("$canonical.$data") eq lc($aliases[0])) {
 		    $canonical = $aliases[0];
 		    shift(@aliases);
@@ -730,9 +728,9 @@ sub HOSTS_TO_RRs {
 		    $reformatted_line = 1;
 		}
 	    }
-	    ($uqdn = $canonical) =~ s/[.]$netpat$//i;
+	    ($uqdn = $canonical) ~~ s/[.]$netpat$//i;
 	    $ignore_c_opt = 0;
-	    if ($comment =~ /\[\s*(?:no|ignore)\s*-c\s*\]/i) {
+	    if ($comment ~~ /\[\s*(?:no|ignore)\s*-c\s*\]/i) {
 		$ignore_c_opt = 1;
 	    } elsif ($cmode !~ /D/) {
 		#
@@ -753,12 +751,12 @@ sub HOSTS_TO_RRs {
 			}
 		    }
 		}
-		if ($c_opt_domain =~ /$Domain_Pattern$/io) {
+		if ($c_opt_domain ~~ /$Domain_Pattern$/io) {
 		    #
 		    # Make the intra-zone/subzone domain name in the CNAME's
 		    # RDATA field relative to the zone's origin (-d option).
 		    #
-		    $c_opt_domain =~ s/$Domain_Pattern$//io;
+		    $c_opt_domain ~~ s/$Domain_Pattern$//io;
 		} else {
 		    #
 		    # Make the RDATA domain name absolute.
@@ -771,7 +769,7 @@ sub HOSTS_TO_RRs {
 		    # file that are allowed to co-exist with CNAMEs.
 		    #
 		    $match = $RRowners{$uqdn};
-		    1 while $match =~ s/ (?:$DNSSEC_RRtypes) / /go;
+		    1 while $match ~~ s/ (?:$DNSSEC_RRtypes) / /go;
 		} else {
 		    $match = " ";
 		}
@@ -784,7 +782,7 @@ sub HOSTS_TO_RRs {
 			$RRowners{$uqdn} = " CNAME ";
 		    }
 		    $data = $uqdn;
-		    while ($data =~ /(?:\\[.]|[^.])*[.]/) {
+		    while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
 			#
 			# The UQDN consists of two or more labels.
 			# Register the interior labels in the %RRowners hash
@@ -792,7 +790,7 @@ sub HOSTS_TO_RRs {
 			# non-existent domain name and a domain name with no
 			# DNS resource records during the auditing phase.
 			#
-			$data =~ s/(?:\\[.]|[^.])*[.]//;  # strip leading label
+			$data ~~ s/(?:\\[.]|[^.])*[.]//;  # strip leading label
 			$RRowners{$data} = " " unless exists($RRowners{$data});
 		    }
 		    if ($show) {
@@ -813,10 +811,10 @@ sub HOSTS_TO_RRs {
 				 "for `$uqdn'; another RR exists.\n";
 		    $show_host_line = 1;
 		}
-		if ($cmode =~ /A/) {	    # also create CNAMEs for alias(es)
+		if ($cmode ~~ /A/) {	    # also create CNAMEs for alias(es)
 		    foreach $tmp (@aliases) {
-			($alias = $tmp) =~ s/[.]$netpat$//i;
-			$make_rr = 1 unless $alias =~ /^\*(?:$|[.])/;
+			($alias = $tmp) ~~ s/[.]$netpat$//i;
+			$make_rr = 1 unless $alias ~~ /^\*(?:$|[.])/;
 			$error = CHECK_NAME($alias, 'CNAME');
 			if ($error) {
 			    $action = ($error == 3) ? "Skipping" : $DefAction;
@@ -831,7 +829,7 @@ sub HOSTS_TO_RRs {
 			if ($make_rr) {
 			    if (exists($RRowners{$alias})) {
 				$match = $RRowners{$alias};
-				1 while $match =~ s/ (?:$DNSSEC_RRtypes) / /go;
+				1 while $match ~~ s/ (?:$DNSSEC_RRtypes) / /go;
 			    } else {
 				$match = " ";
 			    }
@@ -845,8 +843,8 @@ sub HOSTS_TO_RRs {
 				    $RRowners{$alias} = " CNAME ";
 				}
 				$data = $alias;
-				while ($data =~ /(?:\\[.]|[^.])*[.]/) {
-				    $data =~ s/(?:\\[.]|[^.])*[.]//;
+				while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
+				    $data ~~ s/(?:\\[.]|[^.])*[.]//;
 				    unless (exists($RRowners{$data})) {
 					$RRowners{$data} = " ";
 				    }
@@ -866,7 +864,7 @@ sub HOSTS_TO_RRs {
 		#
 		if (exists($RRowners{$uqdn})) {
 		    $match = $RRowners{$uqdn};
-		    1 while $match =~ s/ (?:$DNSSEC_RRtypes) / /go;
+		    1 while $match ~~ s/ (?:$DNSSEC_RRtypes) / /go;
 		} else {
 		    $match = " ";
 		}
@@ -914,7 +912,7 @@ sub HOSTS_TO_RRs {
 			    # `-c' option's "quiet" flag is not in effect and
 			    # this is not an occurrence of a multi-homed host.
 			    #
-			    $tmp_netpat =~ s/\\//g;
+			    $tmp_netpat ~~ s/\\//g;
 			    $tmp = "$tmp_uqdn.$tmp_netpat";
 			    print STDERR "Line $line_num: $message";
 			    if ($uqdn eq $tmp_uqdn) {
@@ -932,10 +930,10 @@ sub HOSTS_TO_RRs {
 				 "for `$uqdn'; another RR exists.\n";
 		    $show_host_line = 1;
 		}
-		if ($cmode =~ /A/) {
+		if ($cmode ~~ /A/) {
 		    foreach $tmp (@aliases) {
-			($alias = $tmp) =~ s/[.]$netpat$//i;
-			$make_rr = 1 unless $alias =~ /^\*(?:$|[.])/;
+			($alias = $tmp) ~~ s/[.]$netpat$//i;
+			$make_rr = 1 unless $alias ~~ /^\*(?:$|[.])/;
 			$error = CHECK_NAME($alias, 'CNAME');
 			if ($error) {
 			    $action = ($error == 3) ? "Skipping" : $DefAction;
@@ -950,7 +948,7 @@ sub HOSTS_TO_RRs {
 			if ($make_rr) {
 			    if (exists($RRowners{$alias})) {
 				$match = $RRowners{$alias};
-				1 while $match =~ s/ (?:$DNSSEC_RRtypes) / /go;
+				1 while $match ~~ s/ (?:$DNSSEC_RRtypes) / /go;
 			    } else {
 				$match = " ";
 			    }
@@ -979,7 +977,7 @@ sub HOSTS_TO_RRs {
 				    if (($tmp_cmode !~ /Q/ && $Verbose)
 					&& ($uqdn ne $tmp_uqdn
 					    || $netpat ne $tmp_netpat)) {
-					$tmp_netpat =~ s/\\//g;
+					$tmp_netpat ~~ s/\\//g;
 					$tmp = "$tmp_uqdn.$tmp_netpat";
 					print STDERR "Line $line_num: ",
 						     "$message";
@@ -1008,7 +1006,7 @@ sub HOSTS_TO_RRs {
 	    # PARSE_ARGS() has ensured that both conditions can not
 	    # be simultaneously true.
 	    #
-	    if ($cmode =~ /I/) {
+	    if ($cmode ~~ /I/) {
 		$match = 1;
 	    } else {
 		$match = 0;
@@ -1043,7 +1041,7 @@ sub HOSTS_TO_RRs {
 	#   3. class A     (/8)
 	#
 	$continue_search = 1;
-	($data = $addr) =~ s/[.]\d+$//;
+	($data = $addr) ~~ s/[.]\d+$//;
 	if (exists($Net_Ranges{"$data.X"})) {
 	    $netpat = $Net_Ranges{"$data.X"};
 	    #
@@ -1055,7 +1053,7 @@ sub HOSTS_TO_RRs {
 	    # host entry's IP address.
 	    #
 	    $match = 0;
-	    ($last_octet = $addr) =~ s/^.+[.]//;
+	    ($last_octet = $addr) ~~ s/^.+[.]//;
 	    foreach $tmp (split(' ', $netpat)) {
 		($first_ip, $last_ip) = split(/-/, $tmp);
 		$last_ip = $first_ip unless defined($last_ip);
@@ -1085,7 +1083,7 @@ sub HOSTS_TO_RRs {
 		# Remove another octet to see if the address matches
 		# a `-a/-n network/9-16' option, i.e., a class-B zone.
 		#
-		$data =~ s/[.]\d+$//;
+		$data ~~ s/[.]\d+$//;
 		if (exists($Net_Ranges{$data})) {
 		    $ptr_file = $Net_Ranges{$data};
 		    $match = 1;
@@ -1094,7 +1092,7 @@ sub HOSTS_TO_RRs {
 		    # Remove another octet to see if the address matches
 		    # a `-a/-n network/8' option, i.e., a class-A zone.
 		    #
-		    $data =~ s/[.]\d+$//;
+		    $data ~~ s/[.]\d+$//;
 		    if (exists($Net_Ranges{$data})) {
 			$ptr_file = $Net_Ranges{$data};
 			$match = 1;
@@ -1108,7 +1106,7 @@ sub HOSTS_TO_RRs {
 	    if ($Verbose) {
 		print STDERR "Line $line_num: Skipping; IP not within ",
 			     "range specified by -n/-a options.\n";
-		if ($cmode =~ /I/ && !$ignore_c_opt) {
+		if ($cmode ~~ /I/ && !$ignore_c_opt) {
 		    print STDERR "Dangling CNAME(s) may exist in the -d ",
 				 "domain due to prior -c option processing.\n";
 		}
@@ -1137,16 +1135,16 @@ sub HOSTS_TO_RRs {
 	    next if $names !~ /(?:^|[.])$netpat(?:\s|$)/i;
 	    next LINE if $addr eq $Localhost;
 	    $pmode = $p_Opt_Mode_Spec{$netpat};
-	    if ($pmode =~ /O/) {
+	    if ($pmode ~~ /O/) {
 		#
 		# The matched domain is a parent domain of the default
 		# domain (-d option).  Make sure to override -p option
 		# processing if the current host file entry also matches
 		# the -d option domain.
 		#
-		last if $names =~ /$Domain_Pattern(?:\s|$)/io;
+		last if $names ~~ /$Domain_Pattern(?:\s|$)/io;
 	    }
-	    if (!$ptr_file || $comment =~ /\[\s*no(?:\s*-*\s*)?ptr\s*\]/i) {
+	    if (!$ptr_file || $comment ~~ /\[\s*no(?:\s*-*\s*)?ptr\s*\]/i) {
 		if ($show_host_line) {
 		    print STDERR "> $_\n";
 		    $show_host_line = 0;
@@ -1168,7 +1166,7 @@ sub HOSTS_TO_RRs {
 		    shift(@aliases);
 		}
 	    }
-	    unless ($canonical =~ /(?:^|[.])$netpat$/i) {
+	    unless ($canonical ~~ /(?:^|[.])$netpat$/i) {
 		if ($show_host_line) {
 		    print STDERR "> $_\n";
 		    $show_host_line = 0;
@@ -1180,9 +1178,9 @@ sub HOSTS_TO_RRs {
 	    # in PARSE_ARGS for an explanation on how the "/ee" modifier
 	    # activates "$ptr_template" in the following substitution.
 	    #
-	    ($ptr_owner = $addr) =~
+	    ($ptr_owner = $addr) ~~
 			  s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$ptr_template/ee;
-	    $canonical .= "." unless $canonical =~ /[.]$/;
+	    $canonical .= "." unless $canonical ~~ /[.]$/;
 	    #
 	    # This program has a feature for choosing how PTR records
 	    # get generated for multi-homed hosts.  They can either
@@ -1199,7 +1197,7 @@ sub HOSTS_TO_RRs {
 	    # may be present with this host.  Creation or deferment
 	    # of the PTR record will then follow.
 	    #
-	    if (!@aliases || $pmode =~ /A/) {
+	    if (!@aliases || $pmode ~~ /A/) {
 		#
 		# No aliases or a "mode=A" argument in the -p option means
 		# that there is no other choice but to use the canonical
@@ -1215,12 +1213,12 @@ sub HOSTS_TO_RRs {
 		# and whether or not it is being overridden by a "[mh=??]"
 		# flag in the comment field.
 		#
-		unless ($Multi_Homed_Mode =~ /P/) {
+		unless ($Multi_Homed_Mode ~~ /P/) {
 		    #
 		    # Use the default PTR method unless overridden.
 		    #
 		    $default_ptr =
-				 ($comment =~ /\[\s*mh\s*=\s*(?:p|cp|pc)\s*\]/i)
+				 ($comment ~~ /\[\s*mh\s*=\s*(?:p|cp|pc)\s*\]/i)
 				 ? 0 : 1;
 		} else {
 		    #
@@ -1228,7 +1226,7 @@ sub HOSTS_TO_RRs {
 		    # NOTE: The absence of the "p" specification in the
 		    #       comment flag signifies an override condition.
 		    #
-		    $default_ptr = ($comment =~ /\[\s*mh\s*=\s*[cd]\s*\]/i)
+		    $default_ptr = ($comment ~~ /\[\s*mh\s*=\s*[cd]\s*\]/i)
 				 ? 1 : 0;
 		}
 	    }
@@ -1243,7 +1241,7 @@ sub HOSTS_TO_RRs {
 			       $ttl, $canonical);
 			$p_opt_ptr{$addr} = 1;
 		    } elsif (exists($RRowners{$ptr_owner})
-			     && $RRowners{$ptr_owner} =~ / CNAME /) {
+			     && $RRowners{$ptr_owner} ~~ / CNAME /) {
 			if ($Verbose) {
 			    print STDERR "Line $line_num: Can't create PTR ",
 					 "for `$ptr_owner'; a CNAME RR ",
@@ -1255,15 +1253,15 @@ sub HOSTS_TO_RRs {
 			       $ttl, $canonical);
 			$p_opt_ptr{$addr} = 1;
 			if (exists($RRowners{$ptr_owner})) {
-			    unless ($RRowners{$ptr_owner} =~ / PTR /) {
+			    unless ($RRowners{$ptr_owner} ~~ / PTR /) {
 				$RRowners{$ptr_owner} .= "PTR ";
 			    }
 			} else {
 			    $RRowners{$ptr_owner} = " PTR ";
 			}
 			$data = $ptr_owner;
-			while ($data =~ /(?:\\[.]|[^.])*[.]/) {
-			    $data =~ s/(?:\\[.]|[^.])*[.]//;
+			while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
+			    $data ~~ s/(?:\\[.]|[^.])*[.]//;
 			    unless (exists($RRowners{$data})) {
 				$RRowners{$data} = " "
 			    }
@@ -1280,11 +1278,11 @@ sub HOSTS_TO_RRs {
 		# instead of the canonical name.
 		#
 		unless (exists($hosts_ptr{$canonical})) {
-		    ($tmp = $netpat) =~ s/\\[.]/./g;
+		    ($tmp = $netpat) ~~ s/\\[.]/./g;
 		    $hosts_ptr{$canonical} = "$tmp ";
 		}
-		($addrpattern = $addr) =~ s/[.]/\\./g;
-		unless ($hosts_ptr{$canonical} =~ /\b$addrpattern /) {
+		($addrpattern = $addr) ~~ s/[.]/\\./g;
+		unless ($hosts_ptr{$canonical} ~~ /\b$addrpattern /) {
 		    #
 		    # Add the new IP address to the hash of canonical names
 		    # for PTR records and store the deferred PTR data.
@@ -1317,7 +1315,7 @@ sub HOSTS_TO_RRs {
 		shift(@aliases);
 	    }
 	}
-	unless ($canonical =~ /$Domain_Pattern$/io || $UseDefaultDomain) {
+	unless ($canonical ~~ /$Domain_Pattern$/io || $UseDefaultDomain) {
 	    if ($Verbose && $ReportNonMatchingDomains) {
 		print STDERR "Line $line_num: Skipping `$canonical'.\n",
 			     "The canonical name does not match the -d ",
@@ -1327,10 +1325,10 @@ sub HOSTS_TO_RRs {
 	    }
 	    next LINE;
 	} else {
-	    $canonical =~ s/$Domain_Pattern$//io;  # strip off domain if present
+	    $canonical ~~ s/$Domain_Pattern$//io;  # strip off domain if present
 	    if (exists($Hosts{$canonical})) {
-		($addrpattern = $addr) =~ s/[.]/\\./g;
-		unless ($Hosts{$canonical} =~ /\b$addrpattern /) {
+		($addrpattern = $addr) ~~ s/[.]/\\./g;
+		unless ($Hosts{$canonical} ~~ /\b$addrpattern /) {
 		    #
 		    # The above check prevents the creation of duplicate
 		    # Address and PTR records.  Now go ahead and index the
@@ -1346,8 +1344,8 @@ sub HOSTS_TO_RRs {
 		$Hosts{$canonical} = "$addr ";
 		$addrpattern = "";
 		$data = $canonical;
-		while ($data =~ /(?:\\[.]|[^.])*[.]/) {
-		    $data =~ s/(?:\\[.]|[^.])*[.]//;
+		while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
+		    $data ~~ s/(?:\\[.]|[^.])*[.]//;
 		    $RRowners{$data} = " " unless exists($RRowners{$data});
 		}
 	    }
@@ -1381,7 +1379,7 @@ sub HOSTS_TO_RRs {
 		# for an explanation on how the "/ee" modifier activates
 		# "$ptr_template" in the following substitution.
 		#
-		($ptr_owner = $addr) =~
+		($ptr_owner = $addr) ~~
 			      s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$ptr_template/ee;
 		unless (@aliases && $Do_CNAME) {
 		    #
@@ -1394,13 +1392,13 @@ sub HOSTS_TO_RRs {
 		    #
 		    $default_ptr = 1;
 		} else {
-		    unless ($Multi_Homed_Mode =~ /P/) {
+		    unless ($Multi_Homed_Mode ~~ /P/) {
 			$default_ptr =
-			   ($comment =~ /\[\s*mh\s*=\s*(?:p|cp|pc)\s*\]/i)
+			   ($comment ~~ /\[\s*mh\s*=\s*(?:p|cp|pc)\s*\]/i)
 				     ? 0
 				     : 1;
 		    } else {
-			$default_ptr = ($comment =~ /\[\s*mh\s*=\s*[cd]\s*\]/i)
+			$default_ptr = ($comment ~~ /\[\s*mh\s*=\s*[cd]\s*\]/i)
 				     ? 1
 				     : 0;
 		    }
@@ -1410,7 +1408,7 @@ sub HOSTS_TO_RRs {
 			PRINTF($ptr_file, "%s%s\tPTR\t%s.%s.\n",
 			       TAB($ptr_owner, 8), $ttl, $canonical, $Domain);
 		    } elsif (exists($RRowners{$ptr_owner})
-			     && $RRowners{$ptr_owner} =~ / CNAME /) {
+			     && $RRowners{$ptr_owner} ~~ / CNAME /) {
 			if ($Verbose) {
 			    print STDERR "Line $line_num: Can't create PTR ",
 					 "for `$ptr_owner'; a CNAME RR ",
@@ -1421,15 +1419,15 @@ sub HOSTS_TO_RRs {
 			PRINTF(*DOMAIN, "%s%s\tPTR\t%s\n",
 			       TAB($ptr_owner, 16), $ttl, $canonical);
 			if (exists($RRowners{$ptr_owner})) {
-			    unless ($RRowners{$ptr_owner} =~ / PTR /) {
+			    unless ($RRowners{$ptr_owner} ~~ / PTR /) {
 				$RRowners{$ptr_owner} .= "PTR ";
 			    }
 			} else {
 			    $RRowners{$ptr_owner} = " PTR ";
 			}
 			$data = $ptr_owner;
-			while ($data =~ /(?:\\[.]|[^.])*[.]/) {
-			    $data =~ s/(?:\\[.]|[^.])*[.]//;
+			while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
+			    $data ~~ s/(?:\\[.]|[^.])*[.]//;
 			    unless (exists($RRowners{$data})) {
 				$RRowners{$data} = " "
 			    }
@@ -1499,7 +1497,7 @@ sub HOSTS_TO_RRs {
 	    # Print address record(s) for the canonical name.
 	    #
 	    if (exists($RRowners{$canonical})
-		&& $RRowners{$canonical} =~ / CNAME /) {
+		&& $RRowners{$canonical} ~~ / CNAME /) {
 		if ($Verbose) {
 		    print STDERR "Can't create A record for `$canonical' ",
 				 "due to an existing CNAME RR.\n";
@@ -1549,7 +1547,7 @@ sub HOSTS_TO_RRs {
 	while (($alias, $data) = each %c_Opt_Aliases) {
 	    if (exists($RRowners{$alias})) {
 		$match = $RRowners{$alias};
-		1 while $match =~ s/ (?:$DNSSEC_RRtypes) / /go;
+		1 while $match ~~ s/ (?:$DNSSEC_RRtypes) / /go;
 	    } else {
 		$match = " ";
 	    }
@@ -1568,8 +1566,8 @@ sub HOSTS_TO_RRs {
 			}
 		    }
 		}
-		if ($c_opt_domain =~ /$Domain_Pattern$/io) {
-		    $c_opt_domain =~ s/$Domain_Pattern$//io;
+		if ($c_opt_domain ~~ /$Domain_Pattern$/io) {
+		    $c_opt_domain ~~ s/$Domain_Pattern$//io;
 		} else {
 		    $c_opt_domain .= ".";
 		}
@@ -1581,8 +1579,8 @@ sub HOSTS_TO_RRs {
 		    $RRowners{$alias} = " CNAME ";
 		}
 		$tmp = $alias;
-		while ($tmp =~ /(?:\\[.]|[^.])*[.]/) {
-		    $tmp =~ s/(?:\\[.]|[^.])*[.]//;
+		while ($tmp ~~ /(?:\\[.]|[^.])*[.]/) {
+		    $tmp ~~ s/(?:\\[.]|[^.])*[.]//;
 		    $RRowners{$tmp} = " " unless exists($RRowners{$tmp});
 		}
 		if ($show) {
@@ -1641,7 +1639,7 @@ sub HOSTS_TO_RRs {
 				    || $canonical eq "$alias.";
 			    $common_alias = 1;
 			    foreach $tmp (@addrs) {
-				unless ($aliases_ptr{"$canonical-$tmp"} =~
+				unless ($aliases_ptr{"$canonical-$tmp"} ~~
 								   / $alias /) {
 				    $common_alias = 0;
 				    last;
@@ -1655,7 +1653,7 @@ sub HOSTS_TO_RRs {
 				# won't be encountered again.
 				#
 				foreach $tmp (@addrs) {
-				    $aliases_ptr{"$canonical-$tmp"} =~
+				    $aliases_ptr{"$canonical-$tmp"} ~~
 								  s/ $alias / /;
 				}
 			    } elsif (exists $Deferred_PTR{"$canonical-$addr"}) {
@@ -1669,7 +1667,7 @@ sub HOSTS_TO_RRs {
 				   split(' ', $Deferred_PTR{"$canonical-$addr"},
 					  3);
 				$tmp = $alias;
-				unless ($alias =~ /[.]$/) {
+				unless ($alias ~~ /[.]$/) {
 				    $tmp .= ".$p_opt_domain.";
 				}
 				$Pending_PTR{$ptr_file}{$ptr_owner} =
@@ -1688,7 +1686,7 @@ sub HOSTS_TO_RRs {
 	    # Anything left over in the deferred PTR hash gets the default
 	    # treatment - a PTR record that points to the canonical name.
 	    #
-	    $canonical =~ s/-(?:\d+[.]){3}\d+$//;
+	    $canonical ~~ s/-(?:\d+[.]){3}\d+$//;
 	    ($ptr_file, $ptr_owner, $ttl) = split(' ', $data, 3);
 	    $Pending_PTR{$ptr_file}{$ptr_owner} = "$canonical $ttl";
 	}
@@ -1699,11 +1697,11 @@ sub HOSTS_TO_RRs {
 		($canonical, $ttl) =
 			     split(' ', $Pending_PTR{$ptr_file}{$ptr_owner}, 2);
 		unless ($ptr_file eq *DOMAIN) {
-		    $canonical .= ".$Domain." unless $canonical =~ /[.]$/;
+		    $canonical .= ".$Domain." unless $canonical ~~ /[.]$/;
 		    PRINTF($ptr_file, "%s%s\tPTR\t%s\n", TAB($ptr_owner, 8),
 			   $ttl, $canonical);
 		} elsif (exists($RRowners{$ptr_owner})
-			 && $RRowners{$ptr_owner} =~ / CNAME /) {
+			 && $RRowners{$ptr_owner} ~~ / CNAME /) {
 		    if ($Verbose) {
 			print STDERR "Can't create PTR record for ",
 				     "`$ptr_owner' due to an existing ",
@@ -1713,15 +1711,15 @@ sub HOSTS_TO_RRs {
 		    PRINTF(*DOMAIN, "%s%s\tPTR\t%s\n", TAB($ptr_owner, 16),
 			   $ttl, $canonical);
 		    if (exists($RRowners{$ptr_owner})) {
-			unless ($RRowners{$ptr_owner} =~ / PTR /) {
+			unless ($RRowners{$ptr_owner} ~~ / PTR /) {
 			    $RRowners{$ptr_owner} .= "PTR ";
 			}
 		    } else {
 			$RRowners{$ptr_owner} = " PTR ";
 		    }
 		    $data = $ptr_owner;
-		    while ($data =~ /(?:\\[.]|[^.])*[.]/) {
-			$data =~ s/(?:\\[.]|[^.])*[.]//;
+		    while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
+			$data ~~ s/(?:\\[.]|[^.])*[.]//;
 			$RRowners{$data} = " " unless exists($RRowners{$data});
 		    }
 		}
@@ -1853,7 +1851,7 @@ sub CHECK_NAME {
     # literally thousands of times during a program run, it is
     # imperative that duplicate pattern processing is eliminated.
 
-    if ($RFC_1123 && $rrtype =~ /^(?:A|MX|WKS)$/) {
+    if ($RFC_1123 && $rrtype ~~ /^(?:A|MX|WKS)$/) {
 	#
 	# The name checking that is done in this block is a
 	# superset of what is done for other other record types
@@ -1902,7 +1900,7 @@ sub CHECK_NAME {
 	#       MX, or WKS records, make sure to remove any
 	#       terminating "." character before calling CHECK_NAME().
 	#
-	if ($name =~ /^[.-]|[.-]$|[.][.]|[.]-|-[.]/) {
+	if ($name ~~ /^[.-]|[.-]$|[.][.]|[.]-|-[.]/) {
 	    #
 	    # This hostname/domain name is bad but we now need
 	    # to know how bad.  If it merely violates RFC-1123
@@ -1915,12 +1913,12 @@ sub CHECK_NAME {
 	    # return code to a special value so that the hostname
 	    # can be skipped if we're processing a host table.
 	    #
-	    $name =~ s/-//g;
-	    return 3 if $name =~ /^[.]|[.][.]$/;
+	    $name ~~ s/-//g;
+	    return 3 if $name ~~ /^[.]|[.][.]$/;
 	    return 2;
 	}
 	$bad_chars = $name;
-	$bad_chars =~ tr/A-Za-z0-9.-//d;
+	$bad_chars ~~ tr/A-Za-z0-9.-//d;
 	return 2 if $bad_chars;
 	return 2 if $RFC_952 && $rrtype eq "A" && length($name) == 1;
 	return 0;
@@ -1933,7 +1931,7 @@ sub CHECK_NAME {
     # Domain names must not begin with an unescaped
     # dot nor contain adjacent unescaped dots.
     #
-    if ($name =~ /^[.]|[^\\][.][.]/) {
+    if ($name ~~ /^[.]|[^\\][.][.]/) {
 	#
 	# No matter what level of name checking is in effect,
 	# we've encountered a basic DNS name error that will
@@ -2128,13 +2126,13 @@ sub DO_COMMENTS_TXT {
 	s/\[\s*no(?:\s*-*\s*)?ptr\s*\]//gi;
 	s/\[\s*(?:no|skip|ignore)\s*-(?-i)c\s*\]//gi;# match only "-c", not "-C"
     }
-    if ($comments =~ /\[\s*(?:no|skip|ignore)\s*-(?-i)C\s*\]/i) {
+    if ($comments ~~ /\[\s*(?:no|skip|ignore)\s*-(?-i)C\s*\]/i) {
 	$skip_C_opt = 1;
-	$comments =~ s/\[\s*(?:no|skip|ignore)\s*-(?-i)C\s*\]//gi;
+	$comments ~~ s/\[\s*(?:no|skip|ignore)\s*-(?-i)C\s*\]//gi;
     }
-    if ($comments =~ /\[\s*(?:no|skip|ignore)\s*-(?-i)t\s*\]/i) {
+    if ($comments ~~ /\[\s*(?:no|skip|ignore)\s*-(?-i)t\s*\]/i) {
 	$skip_t_opt = 1;
-	$comments =~ s/\[\s*(?:no|skip|ignore)\s*-(?-i)t\s*\]//gi;
+	$comments ~~ s/\[\s*(?:no|skip|ignore)\s*-(?-i)t\s*\]//gi;
     }
 
     if ($Commentfile && $comments) {
@@ -2145,11 +2143,11 @@ sub DO_COMMENTS_TXT {
 		# Remove the -C token from the comment so that
 		# it does not create or appear in a TXT record.
 		#
-		$comments =~ s/\s$token(?:\s|$)/ /;
+		$comments ~~ s/\s$token(?:\s|$)/ /;
 	    }
 	    next if $skip_C_opt;
 	    ($class, $rrtype, $tmp) = split(' ', $Comment_RRs{$token}, 3);
-	    unless ($class =~ /^(?:IN|CH|HS)$/) {
+	    unless ($class ~~ /^(?:IN|CH|HS)$/) {
 		#
 		# Assume the optional CLASS field was omitted (defaults
 		# to IN) and that "$class" has the parsed RR type.
@@ -2158,7 +2156,7 @@ sub DO_COMMENTS_TXT {
 	    }
 	    $rrtype = uc($rrtype);
 	    if (exists($RRowners{$canonical})
-		&& $RRowners{$canonical} =~ / CNAME /) {
+		&& $RRowners{$canonical} ~~ / CNAME /) {
 		if ($Verbose) {
 		    print STDERR "Can't create $rrtype record for ",
 				 "`$canonical' due to an existing CNAME RR.\n";
@@ -2201,16 +2199,16 @@ sub DO_COMMENTS_TXT {
     }
 
     if ($Do_TXT && !$skip_t_opt) {
-	$comments =~ s/^\s+//;
-	$comments =~ s/\s+$//;
+	$comments ~~ s/^\s+//;
+	$comments ~~ s/\s+$//;
 	if ($comments && ($Quoted_Txt_Only || $Quoted_Txt_Preferred)) {
-	    if ($comments =~ /["]/) {
+	    if ($comments ~~ /["]/) {
 		#
 		# Remove unquoted text from the comment
 		# field before generating the TXT record.
 		#
-		$comments =~ s/^[^"]+//;
-		$comments =~ s/[^"]+$//;
+		$comments ~~ s/^[^"]+//;
+		$comments ~~ s/[^"]+$//;
 	    } elsif ($Quoted_Txt_Only) {
 		#
 		# No quoted text means that no TXT record should be written.
@@ -2220,7 +2218,7 @@ sub DO_COMMENTS_TXT {
 	}
 	if ($comments) {
 	    if (exists($RRowners{$canonical})
-		&& $RRowners{$canonical} =~ / CNAME /) {
+		&& $RRowners{$canonical} ~~ / CNAME /) {
 		if ($Verbose) {
 		    print STDERR "Can't create TXT record for `$canonical' ",
 				 "due to an existing CNAME RR.\n";
@@ -2261,7 +2259,7 @@ sub DO_COMMENTS_TXT {
 		$Verbose = $tmp_verbose;
 		$status = $Load_Status if $Load_Status > $status;
 		unless ($status) {
-		    unless ($comments =~ /["]/) {
+		    unless ($comments ~~ /["]/) {
 			$comments = '"' . $comments . '"';
 		    }
 		    PRINTF(*DOMAIN, "%s%s\tTXT\t%s\n",
@@ -2306,29 +2304,29 @@ sub MX {
     # and global MX records (-m option) should be created for the host.
     #
     $self = $global = $rafcp = 0;
-    unless ($comments =~ /\[[^]]*(?:mx|smtp)[^]]*\]/i) {
+    unless ($comments ~~ /\[[^]]*(?:mx|smtp)[^]]*\]/i) {
 	#
 	# The default MX-related flag is "[mx]" unless overridden
 	# by specifying one of the other flags in the -M option.
 	#
 	$comments = $Do_MX . $comments;
     }
-    $self = $global = 1 if $comments =~ /\[\s*mx\s*\]/i;
-    $self = $global = 0 if $comments =~ /\[\s*no(?:\s*-*\s*)?mx\s*\]/i;
-    if ($comments =~ /\[\s*no(?:\s*-*\s*)?smtp\s*\]/i) {
+    $self = $global = 1 if $comments ~~ /\[\s*mx\s*\]/i;
+    $self = $global = 0 if $comments ~~ /\[\s*no(?:\s*-*\s*)?mx\s*\]/i;
+    if ($comments ~~ /\[\s*no(?:\s*-*\s*)?smtp\s*\]/i) {
 	$self = 0;
 	$global = 1;
     }
-    if ($comments =~ /\[\s*smtp(?:(\s*-*\s*)?only)?\s*\]/i) {
+    if ($comments ~~ /\[\s*smtp(?:(\s*-*\s*)?only)?\s*\]/i) {
 	$self = 1;
 	$global = 0;
     }
-    if ($comments =~ /\[\s*rafcp\s*\]/i) {
+    if ($comments ~~ /\[\s*rafcp\s*\]/i) {
 	$rafcp = 1;
 	$self = $global = 0;
     }
 
-    if (exists($RRowners{$canonical}) && $RRowners{$canonical} =~ / CNAME /) {
+    if (exists($RRowners{$canonical}) && $RRowners{$canonical} ~~ / CNAME /) {
 	if (($rafcp || $Do_WKS) && $Verbose) {
 	    print STDERR "Can't create WKS record for `$canonical' ",
 			 "due to an existing CNAME RR.\n";
@@ -2350,7 +2348,7 @@ sub MX {
 	    $Owner_Field = $canonical;
 	}
 	if (exists($RRowners{$canonical})) {
-	    unless ($RRowners{$canonical} =~ / WKS /) {
+	    unless ($RRowners{$canonical} ~~ / WKS /) {
 		$RRowners{$canonical} .= "WKS ";
 	    }
 	} else {
@@ -2368,7 +2366,7 @@ sub MX {
 		    $Owner_Field = $canonical;
 		}
 		if (exists($RRowners{$canonical})) {
-		    unless ($RRowners{$canonical} =~ / WKS /) {
+		    unless ($RRowners{$canonical} ~~ / WKS /) {
 			$RRowners{$canonical} .= "WKS ";
 		    }
 		} else {
@@ -2380,7 +2378,7 @@ sub MX {
 		   $ttl, $DefMXWeight, $canonical);
 	    $Owner_Field = $canonical;
 	    if (exists($RRowners{$canonical})) {
-		unless ($RRowners{$canonical} =~ / MX /) {
+		unless ($RRowners{$canonical} ~~ / MX /) {
 		    $RRowners{$canonical} .= "MX ";
 		}
 	    } else {
@@ -2396,7 +2394,7 @@ sub MX {
 		$Owner_Field = $canonical;
 	    }
 	    if (exists($RRowners{$canonical})) {
-		unless ($RRowners{$canonical} =~ / MX /) {
+		unless ($RRowners{$canonical} ~~ / MX /) {
 		    $RRowners{$canonical} .= "MX ";
 		}
 	    } else {
@@ -2415,7 +2413,7 @@ sub RP {
     my ($canonical, $ttl, @addrs) = @_;
     my ($addr, $comments, $domain_part, $rp, $rp_txt, $user_part);
 
-    if (exists($RRowners{$canonical}) && $RRowners{$canonical} =~ / CNAME /) {
+    if (exists($RRowners{$canonical}) && $RRowners{$canonical} ~~ / CNAME /) {
 	if ($Verbose) {
 	    print STDERR "Can't create RP record for `$canonical' ",
 			 "due to an existing CNAME RR.\n";
@@ -2450,28 +2448,28 @@ sub RP {
     #                 RP  TXTDNAME = current canonical domain name
     #                 TXT RDATA    = "text"
     #
-    if ($comments =~ /\[\s*rp\s*=\s*([^\s"]+)?[^"]*("[^"]*")?[^\]]*\]/i) {
+    if ($comments ~~ /\[\s*rp\s*=\s*([^\s"]+)?[^"]*("[^"]*")?[^\]]*\]/i) {
 	$rp = ($1) ? $1 : ".";
 	$rp_txt = ($2) ? $2 : "";
-	$rp_txt =~ s/"//g;
-	if ($rp =~ /@/) {
+	$rp_txt ~~ s/"//g;
+	if ($rp ~~ /@/) {
 	    ($user_part, $domain_part) = split(/@/, $rp, 2);
-	    $user_part =~ s/[.]/\\./g;		# escape "." in username
-	    1 while $user_part =~ s/\\\\/\\/g;	# remove redundancies
-	    if ($domain_part =~ /[.]/) {	# multiple domain labels
+	    $user_part ~~ s/[.]/\\./g;		# escape "." in username
+	    1 while $user_part ~~ s/\\\\/\\/g;	# remove redundancies
+	    if ($domain_part ~~ /[.]/) {	# multiple domain labels
 		$domain_part .= ".";		# append root domain
 	    }					# relative domain fmt. otherwise
 	    $rp = "$user_part.$domain_part";	# rejoin w/ unescaped "."
 	} elsif ($rp !~ /[.]$/) {		# proceed if no trailing "."
-	    $rp =~ s/[.]/\\./g;			# treat as username & escape "."
-	    1 while $rp =~ s/\\\\/\\/g;		# remove redundancies
+	    $rp ~~ s/[.]/\\./g;			# treat as username & escape "."
+	    1 while $rp ~~ s/\\\\/\\/g;		# remove redundancies
 	}					# leave username in relative fmt
-	$rp =~ s/[.][.]/./g;			# remove redundant "." chars.
+	$rp ~~ s/[.][.]/./g;			# remove redundant "." chars.
 	PRINTF(*DOMAIN, "%s%s\tRP\t%s %s\n",
 	       ($canonical eq $Owner_Field ? "\t\t" : TAB($canonical, 16)),
 	       $ttl, $rp, ($rp_txt eq "" ? "." : "$canonical"));
 	if (exists($RRowners{$canonical})) {
-	    unless ($RRowners{$canonical} =~ / RP /) {
+	    unless ($RRowners{$canonical} ~~ / RP /) {
 		$RRowners{$canonical} .= "RP ";
 	    }
 	} else {
@@ -2479,7 +2477,7 @@ sub RP {
 	}
 	unless ($rp_txt eq "") {
 	    PRINTF(*DOMAIN, "%s%s\tTXT\t\"%s\"\n", "\t\t", $ttl, $rp_txt);
-	    unless ($RRowners{$canonical} =~ / TXT /) {
+	    unless ($RRowners{$canonical} ~~ / TXT /) {
 		$RRowners{$canonical} .= "TXT "
 	    }
 	}
@@ -2537,12 +2535,12 @@ sub CNAME {
 	    # the "[mh=??]" flag together with the +m option.
 	    # Determine the forward-mapping method that's now in effect.
 	    #
-	    unless ($Multi_Homed_Mode =~ /C/) {
+	    unless ($Multi_Homed_Mode ~~ /C/) {
 		#
 		# Use the default method unless overridden.
 		#
 		$default_method = ($Comments{"$canonical-$addr"}
-				  =~ /\[\s*mh\s*=\s*(?:c|cp|pc)\s*\]/i) ? 0 : 1;
+				  ~~ /\[\s*mh\s*=\s*(?:c|cp|pc)\s*\]/i) ? 0 : 1;
 	    } else {
 		#
 		# Use the alternate method unless overridden.
@@ -2550,7 +2548,7 @@ sub CNAME {
 		#       comment flag signifies an override condition.
 		#
 		$default_method = ($Comments{"$canonical-$addr"}
-				   =~ /\[\s*mh\s*=\s*[dp]\s*\]/i) ? 1 : 0;
+				   ~~ /\[\s*mh\s*=\s*[dp]\s*\]/i) ? 1 : 0;
 	    }
 	}
 	@aliases = split(' ', $Aliases{"$canonical-$addr"});
@@ -2560,7 +2558,7 @@ sub CNAME {
 	    # Skip over the alias if it and the canonical name differ
 	    # only in that one of them has the domain appended to it.
 	    #
-	    $alias =~ s/$Domain_Pattern$//io;
+	    $alias ~~ s/$Domain_Pattern$//io;
 
 	    # If "$UseDefaultDomain" is in effect (-d domain mode=D),
 	    # the following typo is not caught when the host file is
@@ -2585,7 +2583,7 @@ sub CNAME {
 		#
 		$common_alias = 1;
 		foreach $tmp (@addrs) {
-		    next if $Aliases{"$canonical-$tmp"} =~ / $alias /;
+		    next if $Aliases{"$canonical-$tmp"} ~~ / $alias /;
 		    $common_alias = 0;
 		    last;
 		}
@@ -2606,7 +2604,7 @@ sub CNAME {
 		    $interface_alias = $alias;
 		}
 		if (exists($RRowners{$alias})
-		    && $RRowners{$alias} =~ / CNAME /) {
+		    && $RRowners{$alias} ~~ / CNAME /) {
 		    if ($Verbose) {
 			print STDERR "Can't create A record for `$alias' ",
 				     "due to an existing CNAME RR.\n";
@@ -2651,14 +2649,14 @@ sub CNAME {
 		    # domain names that have at least one Address record.
 		    #
 		    if (exists($RRowners{$alias})) {
-			unless ($RRowners{$alias} =~ / A /) {
+			unless ($RRowners{$alias} ~~ / A /) {
 			    $RRowners{$alias} .= "A ";
 			}
 		    } else {
 			$RRowners{$alias} = " A ";
 		    }
 		    $data = $alias;
-		    while ($data =~ /(?:\\[.]|[^.])*[.]/) {
+		    while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
 			#
 			# The unqualified alias consists of two or more labels.
 			# Register the interior labels in the %RRowners hash
@@ -2666,7 +2664,7 @@ sub CNAME {
 			# non-existent domain name and a domain name with no
 			# DNS resource records during the auditing phase.
 			#
-			$data =~ s/(?:\\[.]|[^.])*[.]//;  # strip leading label
+			$data ~~ s/(?:\\[.]|[^.])*[.]//;  # strip leading label
 			$RRowners{$data} = " " unless exists($RRowners{$data});
 		    }
 
@@ -2708,7 +2706,7 @@ sub CNAME {
 		    # file that are allowed to co-exist with CNAMEs.
 		    #
 		    $tmp = $RRowners{$alias};
-		    1 while $tmp =~ s/ (?:$DNSSEC_RRtypes) / /go;
+		    1 while $tmp ~~ s/ (?:$DNSSEC_RRtypes) / /go;
 		} else {
 		    $tmp = " ";
 		}
@@ -2723,7 +2721,7 @@ sub CNAME {
 		    # instead.
 		    #
 		    $make_rr = 0;
-		    unless ($tmp =~ / CNAME /) {
+		    unless ($tmp ~~ / CNAME /) {
 			if ($common_alias && !exists($Hosts{$alias})) {
 			    #
 			    # As long as the common alias name does not also
@@ -2771,15 +2769,15 @@ sub CNAME {
 			}
 			$rr_written = 1;
 			if (exists($RRowners{$alias})) {
-			    unless ($RRowners{$alias} =~ / A /) {
+			    unless ($RRowners{$alias} ~~ / A /) {
 				$RRowners{$alias} .= "A ";
 			    }
 			} else {
 			    $RRowners{$alias} = " A ";
 			}
 			$data = $alias;
-			while ($data =~ /(?:\\[.]|[^.])*[.]/) {
-			    $data =~ s/(?:\\[.]|[^.])*[.]//;
+			while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
+			    $data ~~ s/(?:\\[.]|[^.])*[.]//;
 			    unless (exists($RRowners{$data})) {
 				$RRowners{$data} = " ";
 			    }
@@ -2823,22 +2821,22 @@ sub CNAME {
 			    $RRowners{$alias} = " CNAME ";
 			}
 			$data = $alias;
-			while ($data =~ /(?:\\[.]|[^.])*[.]/) {
-			    $data =~ s/(?:\\[.]|[^.])*[.]//;
+			while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
+			    $data ~~ s/(?:\\[.]|[^.])*[.]//;
 			    unless (exists($RRowners{$data})) {
 				$RRowners{$data} = " ";
 			    }
 			}
-			if ($Audit && $Verbose && $alias =~ /^\*(?:$|[.])/) {
+			if ($Audit && $Verbose && $alias ~~ /^\*(?:$|[.])/) {
 			    #
 			    # Register the wildcard CNAME in the hash
 			    # that is reserved for this purpose.
 			    #
 			    $tmp = $alias;
-			    unless ($tmp =~ /$Domain_Pattern[.]$/io) {
+			    unless ($tmp ~~ /$Domain_Pattern[.]$/io) {
 				$tmp .= ".$Domain.";
 			    }
-			    $tmp =~ s/^\*[.]//;
+			    $tmp ~~ s/^\*[.]//;
 			    $Wildcards{$tmp} = " CNAME ";
 			}
 		    }
@@ -2853,7 +2851,7 @@ sub CNAME {
 		# it's not encountered again for the next address of this host.
 		#
 		foreach $tmp (@addrs) {
-		    $Aliases{"$canonical-$tmp"} =~ s/ $alias / /;
+		    $Aliases{"$canonical-$tmp"} ~~ s/ $alias / /;
 		}
 	    }
 	    if ($rr_written && exists($c_Opt_Aliases{$alias})) {
@@ -2889,11 +2887,11 @@ sub SECONDS {
     my ($input_time) = @_;
     my ($factor, $multiplier, $total_seconds, $unit);
 
-    return $input_time if $input_time =~ /^\d*$/;
+    return $input_time if $input_time ~~ /^\d*$/;
     $total_seconds = 0;
     $input_time = uc($input_time);
     while ($input_time) {
-	$input_time =~ s/^(\d+)([WDHMS])//;
+	$input_time ~~ s/^(\d+)([WDHMS])//;
 	$factor = $1;
 	$unit   = $2;
 	if ($unit eq 'W') {
@@ -2920,8 +2918,8 @@ sub SYMBOLIC_TIME {
     my ($input_time) = @_;
     my ($factor, $time_string);
 
-    $input_time = uc($input_time) if $input_time =~ /^\d+[wdhms]$/;
-    return $input_time unless $input_time =~ /^\d+$/;
+    $input_time = uc($input_time) if $input_time ~~ /^\d+[wdhms]$/;
+    return $input_time unless $input_time ~~ /^\d+$/;
     return "${input_time}S" if $input_time < 60;
     $time_string = "";
     if ($input_time >= 604800 ) {
@@ -2945,7 +2943,7 @@ sub SYMBOLIC_TIME {
 	$time_string .= "${factor}m";
     }
     $time_string .= "${input_time}s" if $input_time;
-    $time_string  = uc($time_string) if $time_string =~ /^\d+[wdhms]$/;
+    $time_string  = uc($time_string) if $time_string ~~ /^\d+[wdhms]$/;
     return $time_string;
 }
 
@@ -3262,7 +3260,7 @@ sub MAKE_SOA {
 		$error = 0;
 		$tmp = $1;
 		$rdata = $2;
-		$rdata =~ s/[()]//g;
+		$rdata ~~ s/[()]//g;
 		@soa_fields = split(' ', $rdata);
 		if ($#soa_fields == 6) {
 		    $current_serial = $soa_fields[2];
@@ -3339,8 +3337,8 @@ sub MAKE_SOA {
 	# Make a cosmetic indulgence by keeping in-domain names
 	# relative to the origin in the forward-mapping file.
 	#
-	$soa_mname =~ s/$Domain_Pattern[.]$//io;
-	$soa_rname =~ s/$Domain_Pattern[.]$//io;
+	$soa_mname ~~ s/$Domain_Pattern[.]$//io;
+	$soa_rname ~~ s/$Domain_Pattern[.]$//io;
     }
     if ($Need_Numeric_Ttl) {
 	$soa_refresh = SECONDS($soa_refresh);
@@ -3371,13 +3369,13 @@ sub MAKE_SOA {
 		" $soa_minimum )\n";
     foreach $s (@Full_Servers) {
 	$tmp = $s;
-	$tmp =~ s/$Domain_Pattern[.]$//io if $uq_fname eq $Domainfile;
+	$tmp ~~ s/$Domain_Pattern[.]$//io if $uq_fname eq $Domainfile;
 	print FILEH "\tNS\t$tmp\n";
     }
     if (exists($Partial_Servers{$uq_fname})) {
 	foreach $s (split(' ', $Partial_Servers{$uq_fname})) {
 	    $tmp = $s;
-	    $tmp =~ s/$Domain_Pattern[.]$//io if $uq_fname eq $Domainfile;
+	    $tmp ~~ s/$Domain_Pattern[.]$//io if $uq_fname eq $Domainfile;
 	    print FILEH "\tNS\t$tmp\n";
 	}
     } elsif (!@Full_Servers) {
@@ -3395,14 +3393,14 @@ sub MAKE_SOA {
 	foreach $rrtype (keys %Apex_RRs) {
 	    foreach $data (@{ $Apex_RRs{$rrtype} }) {
 		$rdata = $data;
-		if ($rdata =~ /\n$/) {
+		if ($rdata ~~ /\n$/) {
 		    #
 		    # A newline appended to the "$rdata" string is a
 		    # data structure signal to indicate that this is
 		    # a continuation line of a multi-line record.
 		    #
-		    $rdata =~ s/\n$//;
-		    if ($rdata =~ /\n$/) {
+		    $rdata ~~ s/\n$//;
+		    if ($rdata ~~ /\n$/) {
 			#
 			# Besides this being a continuation line, a second
 			# appended newline signifies that the previous line
@@ -3430,7 +3428,7 @@ sub MAKE_SOA {
     unless ($limit_flag) {
 	return 1;
     } elsif ($limit_flag == 1) {
-	($message = <<"EOT") =~ s/^\s+\|//gm;
+	($message = <<"EOT") ~~ s/^\s+\|//gm;
 	|Warning: SOA serial number for db file `$uq_fname' was already
 	|         set to the requested value of $New_Serial.  It has been
 	|         incremented to $new_serial instead.
@@ -3438,7 +3436,7 @@ EOT
 	print STDERR "$message\n";
 	return 1;
     } else {
-	($message = <<"EOT") =~ s/^\s+\|//gm;
+	($message = <<"EOT") ~~ s/^\s+\|//gm;
 	|Warning: SOA serial increment from $current_serial to $New_Serial for db file
 	|         `$uq_fname' exceeds the RFC-1982 maximum of 2147483647.
 	|         To prevent zone propagation failures, only the maximum increment
@@ -3503,7 +3501,7 @@ sub INITDBs {
 	PRINTF($file_handle, "1\t\tPTR\tlocalhost.\n");
     }
     if ($warning) {
-	($message = <<'EOT') =~ s/^\s+\|//gm;
+	($message = <<'EOT') ~~ s/^\s+\|//gm;
 	|
 	|    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	|    !!                                                              !!
@@ -3539,9 +3537,9 @@ sub GEN_NAME {
     my ($eval_string, $offset, $prefix, $radix, $suffix, $width);
 
     $eval_string = '""';
-    $template =~ s/\$\$/\\\$/g;	    # "$$" -> "\$" for backwards compatibility
+    $template ~~ s/\$\$/\\\$/g;	    # "$$" -> "\$" for backwards compatibility
     while ($template) {
-	unless ($template =~ /([^\$]+)?\$(.*)/) {
+	unless ($template ~~ /([^\$]+)?\$(.*)/) {
 	    #
 	    # We are finished - there are no more "$" characters.
 	    # Append what's left of "$template" to "$eval_string"
@@ -3559,7 +3557,7 @@ sub GEN_NAME {
 	    $suffix = (defined($2)) ? $2 : "";
 	    $eval_string .= " . \"$prefix\"";
 	    $template = $suffix;
-	    if ($eval_string =~ /\\\"$/) {
+	    if ($eval_string ~~ /\\\"$/) {
 		#
 		# It turns out that an escape character preceded the "$"
 		# that was just found thus rendering it as just another
@@ -3568,13 +3566,13 @@ sub GEN_NAME {
 		# was removed from the end of the "$eval_string" variable
 		# and proceed to the next loop iteration.
 		#
-		$eval_string =~ s/\\\"$/\$\"/;
+		$eval_string ~~ s/\\\"$/\$\"/;
 	    } else {
 		#
 		# The "$" character is indeed an iterator replacement symbol.
 		# Now see if it is followed by a format specification.
 		#
-		unless ($template =~ /^{/) {
+		unless ($template ~~ /^{/) {
 		    #
 		    # No format specification appears after the "$" character.
 		    # Substitute an appended literal iterator variable "$i"
@@ -3582,7 +3580,7 @@ sub GEN_NAME {
 		    # iteration token of the BIND $GENERATE template.
 		    #
 		    $eval_string .= ' . $i';
-		} elsif ($template =~ /^{(-?\d+),*([^,}]+)?,*([^,}]+)?}(.*)/) {
+		} elsif ($template ~~ /^{(-?\d+),*([^,}]+)?,*([^,}]+)?}(.*)/) {
 		    #
 		    # A valid format specification appears after the "$"
 		    # substitution symbol, e.g.,  host${0,3,d}
@@ -3595,12 +3593,12 @@ sub GEN_NAME {
 		    $width = $2;
 		    $radix = $3;
 		    $template = $4;
-		    unless (defined($width) && $width =~ /^\d+$/) {
+		    unless (defined($width) && $width ~~ /^\d+$/) {
 			$width = 0;
 		    } else {
 			$width = "0$width";	# prepend "0" for zero-padding
 		    }
-		    $radix = "d" unless defined($radix) && $radix =~ /^[doxX]$/;
+		    $radix = "d" unless defined($radix) && $radix ~~ /^[doxX]$/;
 		    $eval_string .= " . sprintf(\"%${width}${radix}\", "
 				 .  '($i + ' . "$offset))";
 		} else {
@@ -3619,7 +3617,7 @@ sub GEN_NAME {
     # "$eval_string".  Remove them to eliminate unnecessary processing
     # by eval() in READ_RRs().
     #
-    1 while $eval_string =~ s/^\"\" . //g;
+    1 while $eval_string ~~ s/^\"\" . //g;
     return $eval_string;
 }
 
@@ -3685,7 +3683,7 @@ sub READ_RRs {
 	    $warning_status = $Newline_Printed = 2;
 	    return $warning_status;
 	}
-	($rr_source = $rr_data) =~ s/^.*\///;
+	($rr_source = $rr_data) ~~ s/^.*\///;
 	$rr_source = "`$rr_source'";
     }
     $zone = lc($zone);			  # in case the -P option is in effect
@@ -3697,7 +3695,7 @@ sub READ_RRs {
     # Make sure to escape any Regular Expression metacharacters
     # that may be present in "$zone_pattern".
     #
-    $zone_pattern =~ s/([.\|\\\$\^\+\[\(\)\?'`])/\\$1/g;
+    $zone_pattern ~~ s/([.\|\\\$\^\+\[\(\)\?'`])/\\$1/g;
     $zone_pattern = "\\.$zone_pattern" if $zone ne '.';
     $message = $ttl = "";
     $continuation_line = $open_paren_count = $open_quote = 0;
@@ -3899,7 +3897,7 @@ sub READ_RRs {
 		$message = "Unbalanced parentheses; ";
 		if (ref($rr_data)) {
 		    $message .= "$rr_source";
-		    if ($rr_source =~ /^-[Ct]/) {
+		    if ($rr_source ~~ /^-[Ct]/) {
 			#
 			# Make it clear that this candidate resource record
 			# submitted by DO_COMMENTS_TXT() for processing
@@ -3920,7 +3918,7 @@ sub READ_RRs {
 		$message = "Unbalanced quotes; ";
 		if (ref($rr_data)) {
 		    $message .= "$rr_source";
-		    if ($rr_source =~ /^-[Ct]/) {
+		    if ($rr_source ~~ /^-[Ct]/) {
 			$message .= " (record *not* written to DB file)";
 		    }
 		} else {
@@ -3950,7 +3948,7 @@ sub READ_RRs {
 		$message = "Unexpected end of input; ";
 		if (ref($rr_data)) {
 		    $message .= "$rr_source";
-		    if ($rr_source =~ /^-[Ct]/) {
+		    if ($rr_source ~~ /^-[Ct]/) {
 			$message .= " (record *not* written to DB file)";
 		    }
 		} else {
@@ -3985,24 +3983,24 @@ sub READ_RRs {
 	    #
 	    $tmp    = lc($1);
 	    $rrtype = uc($2);
-	    ($rdata = lc($3)) =~ s/\s+$//;		    # chop whitespace
+	    ($rdata = lc($3)) ~~ s/\s+$//;		    # chop whitespace
 	    $rr     = 1;
-	    $tmp =~ s/\s+(?:in|hs|ch(?:aos)?|any)\s+/ /;    # strip class
-	    if ($tmp =~ /^\S/) {			    # TTL *may* exist
+	    $tmp ~~ s/\s+(?:in|hs|ch(?:aos)?|any)\s+/ /;    # strip class
+	    if ($tmp ~~ /^\S/) {			    # TTL *may* exist
 		($owner, $ttl) = split(' ', $tmp);
 		$ttl = $default_ttl unless $ttl;
 		#
 		# Make sure that all new owner names are fully-qualified.
 		#
-		1 while $owner =~ s/\\\\/\\/g;		# strip excess escapes
+		1 while $owner ~~ s/\\\\/\\/g;		# strip excess escapes
 		$owner  = $origin if $owner eq '@';
-		$owner .= $zone_suffix unless $owner =~ /(?:^|[^\\])[.]$/;
-	    } elsif ($tmp =~ /\S/) {			# TTL field exists
-		($ttl = $tmp) =~ s/\s+//g;
+		$owner .= $zone_suffix unless $owner ~~ /(?:^|[^\\])[.]$/;
+	    } elsif ($tmp ~~ /\S/) {			# TTL field exists
+		($ttl = $tmp) ~~ s/\s+//g;
 	    } else {					# TTL field is null
 		$ttl = $default_ttl;
 	    }
-	    if ($owner =~ /$zone_pattern$/ || $owner eq $zone) {
+	    if ($owner ~~ /$zone_pattern$/ || $owner eq $zone) {
 		#
 		# Only consider RRs matching the current zone tree.  RRs in
 		# child zones will also be processed so that missing glue
@@ -4026,11 +4024,11 @@ sub READ_RRs {
 		# properly point to the canonical domain name instead.
 		#
 		$uq_owner = $owner;
-		$uq_owner =~ s/$domain_pattern[.]$// unless $owner eq '.';
+		$uq_owner ~~ s/$domain_pattern[.]$// unless $owner eq '.';
 		if ($rrtype eq 'CNAME' && $owner eq $zone) {
 		    $message = "Warning: Zone name can not exist as a CNAME";
 		    $Load_Status = 3;
-		} elsif ($rrtype eq 'NS' && $owner =~ /^\*(?:[.]|$)/) {
+		} elsif ($rrtype eq 'NS' && $owner ~~ /^\*(?:[.]|$)/) {
 		    $message = "Warning: NS owner name can not exist "
 			     . "as a wildcard";
 		    $Load_Status = 3;
@@ -4047,9 +4045,9 @@ sub READ_RRs {
 			# of the accumulated RR types for this owner name.
 			# Any leftover RR types will trigger the warning.
 			#
-			1 while $data2 =~ s/ (?:$DNSSEC_RRtypes) / /go;
+			1 while $data2 ~~ s/ (?:$DNSSEC_RRtypes) / /go;
 		    }
-		    if ($data =~ / CNAME /
+		    if ($data ~~ / CNAME /
 			&& $rrtype !~ /^(?:$DNSSEC_RRtypes)$/o) {
 			$message = "Warning: `$uq_owner' already exists "
 				 . "as a CNAME";
@@ -4077,14 +4075,14 @@ sub READ_RRs {
 		    #       checking get passed to CHECK_NAME in their entirety.
 		    #
 		    $tmp = $owner;
-		    if ($rrtype =~ /^(?:A|MX|WKS)$/) {
+		    if ($rrtype ~~ /^(?:A|MX|WKS)$/) {
 			#
 			# Make sure to trim the trailing "." and/or any
 			# wildcard labels of A, MX, and WKS RRs before
 			# submitting the owner field to CHECK_NAME().
 			#
-			$tmp =~ s/[.]$//;
-			$tmp =~ s/^\*(?:[.]|$)//;
+			$tmp ~~ s/[.]$//;
+			$tmp ~~ s/^\*(?:[.]|$)//;
 		    }
 		    $error = ($tmp) ? CHECK_NAME($tmp, $rrtype) : 0;
 		    if ($error) {
@@ -4092,7 +4090,7 @@ sub READ_RRs {
 			$Load_Status = $error if $error > $Load_Status;
 		    }
 		    $data = ($error == 3) ? "" : $uq_owner;
-		    while ($data =~ /(?:\\[.]|[^.])*[.]/) {
+		    while ($data ~~ /(?:\\[.]|[^.])*[.]/) {
 			#
 			# The unqualified owner consists of two or more labels.
 			# Register the interior labels in the %RRowners hash
@@ -4100,7 +4098,7 @@ sub READ_RRs {
 			# non-existent domain name and a domain name with no
 			# DNS resource records during the auditing phase.
 			#
-			$data =~ s/(?:\\[.]|[^.])*[.]//;  # strip leading label
+			$data ~~ s/(?:\\[.]|[^.])*[.]//;  # strip leading label
 			$RRowners{$data} = " " unless exists($RRowners{$data});
 		    }
 		    if ($rrtype eq 'SRV' && $RFC_2782) {
@@ -4137,9 +4135,9 @@ sub READ_RRs {
 			    $message .= "${n}Missing SRV Service and Protocol "
 				      . "labels";
 			} else {
-			    ($tmp = $uq_owner) =~ s/([^\\])[.]/$1 /;
+			    ($tmp = $uq_owner) ~~ s/([^\\])[.]/$1 /;
 			    ($service, $protocol) = split(' ', $tmp, 2);
-			    unless ($service =~ /^_.+/) {
+			    unless ($service ~~ /^_.+/) {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Leading underscore character "
 					  . "missing from SRV Service label";
@@ -4174,10 +4172,10 @@ sub READ_RRs {
 		#       stored in zone-relative format to the `-d' option
 		#       whenever possible.
 		#
-		1 while $rdata =~ s/\\\\/\\/g;		# Strip excess escapes.
+		1 while $rdata ~~ s/\\\\/\\/g;		# Strip excess escapes.
 		$rdata  = $origin    if $rdata eq '@';	# Always fully qualify
 		$rdata .= ".$origin" if $rdata !~ /\.$/;# but, if possible, make
-		$rdata =~ s/$domain_pattern[.]$//;	# relative to -d option.
+		$rdata ~~ s/$domain_pattern[.]$//;	# relative to -d option.
 		if ($rrtype eq 'MX') {
 		    ($preference, $tmp) = split(' ', $rdata, 2);
 		    $rdata = (defined($tmp)) ? $tmp : "";
@@ -4186,9 +4184,9 @@ sub READ_RRs {
 			$message .= "${n}Invalid MX Preference value";
 			$Load_Status = 3;
 		    }
-		    if ($rdata =~ /^\S+$/) {
+		    if ($rdata ~~ /^\S+$/) {
 			if (exists($MXlist{$rdata})) {
-			    unless ($MXlist{$rdata} =~ /$rr_source/) {
+			    unless ($MXlist{$rdata} ~~ /$rr_source/) {
 				$MXlist{$rdata} .= ", $rr_source";
 			    }
 			    if ($owner eq $zone) {
@@ -4232,10 +4230,10 @@ sub READ_RRs {
 			    # complete by using the FQDN.
 			    #
 			    $tmp = $rdata;
-			    unless ($tmp =~ /(?:^|[^\\])[.]$/) {
+			    unless ($tmp ~~ /(?:^|[^\\])[.]$/) {
 				$tmp .= $zone_suffix
 			    }
-			    $tmp =~ s/[.]$//;
+			    $tmp ~~ s/[.]$//;
 			    $error = ($tmp) ? CHECK_NAME($tmp, 'MX') : 0;
 			    if ($error) {
 				$n = ($message) ? ".\n" : "";
@@ -4275,16 +4273,16 @@ sub READ_RRs {
 		    # Keep track of CNAME references so that dangling
 		    # CNAMEs and CNAME loops can be detected.
 		    #
-		    if ($rdata =~ /^\S+$/) {
+		    if ($rdata ~~ /^\S+$/) {
 			$rdata_fqdn = $rdata;
-			$rdata_fqdn .= ".$origin" unless $rdata_fqdn =~ /[.]$/;
+			$rdata_fqdn .= ".$origin" unless $rdata_fqdn ~~ /[.]$/;
 			if ($rrtype eq 'CNAME' && $uq_owner eq $rdata) {
 			    $n = ($message) ? ".\n" : "";
 			    $message .= "${n}Warning: `$rdata' points back "
 				      . "to itself";
 			}
 			if (exists($Spcl_CNAME{$rdata})) {
-			    unless ($Spcl_CNAME{$rdata} =~ /$rr_source/) {
+			    unless ($Spcl_CNAME{$rdata} ~~ /$rr_source/) {
 				$Spcl_CNAME{$rdata} .= ", $rr_source";
 			    }
 			} else {
@@ -4301,7 +4299,7 @@ sub READ_RRs {
 			    $show = $Show_Dangling_CNAMEs;
 			    if (@Dangling_CNAME_Domains) {
 				foreach $tmp (@Dangling_CNAME_Domains) {
-				    next unless $rdata_fqdn =~ /[.]$tmp[.]$/i;
+				    next unless $rdata_fqdn ~~ /[.]$tmp[.]$/i;
 				    $show = $Dangling_CNAME_Domains{$tmp};
 				    last;
 				}
@@ -4318,9 +4316,9 @@ sub READ_RRs {
 		    # Keep track of PTR references to determine whether
 		    # or not they properly point to Address RRs.
 		    #
-		    if ($rdata =~ /^\S+$/) {
+		    if ($rdata ~~ /^\S+$/) {
 			if (exists($Spcl_PTR{$rdata})) {
-			    unless ($Spcl_PTR{$rdata} =~ /$rr_source/) {
+			    unless ($Spcl_PTR{$rdata} ~~ /$rr_source/) {
 				$Spcl_PTR{$rdata} .= ", $rr_source";
 			    }
 			} else {
@@ -4332,10 +4330,10 @@ sub READ_RRs {
 			    # on the PTR record's owner field.
 			    #
 			    $tmp = $rdata;
-			    unless ($tmp =~ /(?:^|[^\\])[.]$/) {
+			    unless ($tmp ~~ /(?:^|[^\\])[.]$/) {
 				$tmp .= $zone_suffix;
 			    }
-			    $tmp =~ s/[.]$//;
+			    $tmp ~~ s/[.]$//;
 			    $error = ($tmp) ? CHECK_NAME($tmp, 'A') : 0;
 			    if ($error) {
 				$n = ($message) ? ".\n" : "";
@@ -4349,7 +4347,7 @@ sub READ_RRs {
 			$Load_Status = 3;
 		    }
 		} elsif ($rrtype eq 'RP') {
-		    if ($rdata =~ /^(\S+)\s+(\S+)$/) {
+		    if ($rdata ~~ /^(\S+)\s+(\S+)$/) {
 			$rp_mailbox = $1;
 			$txt_domain = $2;
 			$rp_mailbox = $origin if $rp_mailbox eq '@';
@@ -4359,11 +4357,11 @@ sub READ_RRs {
 			# MAILBOX/TXTDNAME field ends with/exists as
 			# a "." character.
 			#
-			unless ($rp_mailbox =~ /(?:^|[^\\])[.]$/) {
+			unless ($rp_mailbox ~~ /(?:^|[^\\])[.]$/) {
 			    $rp_mailbox .= $zone_suffix;
 			}
 			unless ($txt_domain eq ".") {
-			    $txt_domain =~ s/$domain_pattern[.]$//;
+			    $txt_domain ~~ s/$domain_pattern[.]$//;
 			}
 			#
 			# Starting with BIND 4.9.4, `res_mailok' in `res_comp.c'
@@ -4375,8 +4373,8 @@ sub READ_RRs {
 			#
 			if ($rp_mailbox ne ".") {
 			    $tmp = $rp_mailbox;
-			    $tmp =~ s/(?:\\[.]|[^.])*[.]//;  # strip first label
-			    $tmp =~ s/[.]$//;
+			    $tmp ~~ s/(?:\\[.]|[^.])*[.]//;  # strip first label
+			    $tmp ~~ s/[.]$//;
 			    $error = ($tmp) ? CHECK_NAME($tmp, 'A') : 1;
 			    if ($error) {
 				$n = ($message) ? ".\n" : "";
@@ -4387,7 +4385,7 @@ sub READ_RRs {
 			}
 			if ($txt_domain ne '.') {
 			    if (exists($Spcl_RP{$txt_domain})) {
-				unless ($Spcl_RP{$txt_domain} =~ /$rr_source/) {
+				unless ($Spcl_RP{$txt_domain} ~~ /$rr_source/) {
 				    $Spcl_RP{$txt_domain} .= ", $rr_source";
 				}
 			    } else {
@@ -4410,9 +4408,9 @@ sub READ_RRs {
 			$Load_Status = 3;
 		    }
 		} elsif ($rrtype eq 'NS' && $owner !~ /^\*(?:[.]|$)/) {
-		    if ($rdata =~ /^\S+$/) {
+		    if ($rdata ~~ /^\S+$/) {
 			if (exists($NSlist{$rdata})) {
-			    unless ($NSlist{$rdata} =~ /$rr_source/) {
+			    unless ($NSlist{$rdata} ~~ /$rr_source/) {
 				$NSlist{$rdata} .= ", $rr_source";
 			    }
 			} else {
@@ -4424,10 +4422,10 @@ sub READ_RRs {
 			    # on the NS record's owner field.
 			    #
 			    $tmp = $rdata;
-			    unless ($tmp =~ /(?:^|[^\\])[.]$/) {
+			    unless ($tmp ~~ /(?:^|[^\\])[.]$/) {
 				$tmp .= $zone_suffix;
 			    }
-			    $tmp =~ s/[.]$//;
+			    $tmp ~~ s/[.]$//;
 			    $error = ($tmp) ? CHECK_NAME($tmp, 'A') : 0;
 			    if ($error) {
 				$n = ($message) ? ".\n" : "";
@@ -4501,7 +4499,7 @@ sub READ_RRs {
 			$Load_Status = 3;
 		    } elsif ($rdata !~ /^[.]$/) {
 			if (exists($Spcl_SRV{$rdata})) {
-			    unless ($Spcl_SRV{$rdata} =~ /$rr_source/) {
+			    unless ($Spcl_SRV{$rdata} ~~ /$rr_source/) {
 				$Spcl_SRV{$rdata} .= ", $rr_source";
 			    }
 			} else {
@@ -4513,10 +4511,10 @@ sub READ_RRs {
 			    # on the NS record's owner field.
 			    #
 			    $tmp = $rdata;
-			    unless ($tmp =~ /(?:^|[^\\])[.]$/) {
+			    unless ($tmp ~~ /(?:^|[^\\])[.]$/) {
 				$tmp .= $zone_suffix;
 			    }
-			    $tmp =~ s/[.]$//;
+			    $tmp ~~ s/[.]$//;
 			    $error = ($tmp) ? CHECK_NAME($tmp, 'A') : 0;
 			    if ($error) {
 				$n = ($message) ? ".\n" : "";
@@ -4539,14 +4537,14 @@ sub READ_RRs {
 		    #       optional readability separators but BIND 9.X
 		    #       does not.  We'll use the BIND 9.X standard.
 		    #
-		    if ($rdata =~ /^\S+$/) {
-			unless ($rdata =~ /^0x/i) {
+		    if ($rdata ~~ /^\S+$/) {
+			unless ($rdata ~~ /^0x/i) {
 			    $n = ($message) ? ".\n" : "";
 			    $message .= "${n}RDATA field must begin with "
 				      . "`0x' (RFC-1706)";
 			    $Load_Status = 3;
 			}
-			$rdata =~ s/^0x(?:[.]+)?//i;
+			$rdata ~~ s/^0x(?:[.]+)?//i;
 			unless ($rdata) {
 			    $n = ($message) ? ".\n" : "";
 			    $message .= "${n}Missing hexadecimal digits "
@@ -4558,21 +4556,21 @@ sub READ_RRs {
 			while (length($rdata)) {
 			    ($tmp, $rdata) = split(//, $rdata, 2);
 			    next if $tmp eq ".";
-			    unless ($tmp =~ /\d|[A-F]/) {
+			    unless ($tmp ~~ /\d|[A-F]/) {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Invalid character found "
 					  . "in RDATA";
 				$Load_Status = 3;
 				last;
 			    }
-			    unless ($rdata && $rdata =~ /^(?:\d|[A-F])/) {
+			    unless ($rdata && $rdata ~~ /^(?:\d|[A-F])/) {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Unpaired hexadecimal digit "
 					  . "in RDATA";
 				$Load_Status = 3;
 				last;
 			    } else {
-				$rdata =~ s/^.//;
+				$rdata ~~ s/^.//;
 			    }
 			}
 		    } else {
@@ -4588,9 +4586,9 @@ sub READ_RRs {
 			$message .= "${n}Invalid AFSDB Subtype value";
 			$Load_Status = 3;
 		    }
-		    if ($rdata =~ /^\S+$/) {
+		    if ($rdata ~~ /^\S+$/) {
 			if (exists($Spcl_AFSDB{$rdata})) {
-			    unless ($Spcl_AFSDB{$rdata} =~ /$rr_source/) {
+			    unless ($Spcl_AFSDB{$rdata} ~~ /$rr_source/) {
 				$Spcl_AFSDB{$rdata} .= ", $rr_source";
 			    }
 			} else {
@@ -4601,10 +4599,10 @@ sub READ_RRs {
 			    # by using the FQDN.
 			    #
 			    $tmp = $rdata;
-			    unless ($tmp =~ /(?:^|[^\\])[.]$/) {
+			    unless ($tmp ~~ /(?:^|[^\\])[.]$/) {
 				$tmp .= $zone_suffix;
 			    }
-			    $tmp =~ s/[.]$//;
+			    $tmp ~~ s/[.]$//;
 			    $error = ($tmp) ? CHECK_NAME($tmp, 'A') : 0;
 			    if ($error) {
 				$n = ($message) ? ".\n" : "";
@@ -4629,9 +4627,9 @@ sub READ_RRs {
 			$message .= "${n}Invalid RT Preference value";
 			$Load_Status = 3;
 		    }
-		    if ($rdata =~ /^\S+$/) {
+		    if ($rdata ~~ /^\S+$/) {
 			if (exists($Spcl_RT{$rdata})) {
-			    unless ($Spcl_RT{$rdata} =~ /$rr_source/) {
+			    unless ($Spcl_RT{$rdata} ~~ /$rr_source/) {
 				$Spcl_RT{$rdata} .= ", $rr_source";
 			    }
 			    if ($owner eq $zone) {
@@ -4657,10 +4655,10 @@ sub READ_RRs {
 			    # by using the FQDN.
 			    #
 			    $tmp = $rdata;
-			    unless ($tmp =~ /(?:^|[^\\])[.]$/) {
+			    unless ($tmp ~~ /(?:^|[^\\])[.]$/) {
 				$tmp .= $zone_suffix;
 			    }
-			    $tmp =~ s/[.]$//;
+			    $tmp ~~ s/[.]$//;
 			    $error = ($tmp) ? CHECK_NAME($tmp, 'A') : 0;
 			    if ($error) {
 				$n = ($message) ? ".\n" : "";
@@ -4708,10 +4706,10 @@ sub READ_RRs {
 			    # Do not append the origin if the MNAME/RNAME
 			    # field exists as, or ends with, an unescaped ".".
 			    #
-			    unless ($RespHost =~ /(?:^|[^\\])[.]$/) {
+			    unless ($RespHost ~~ /(?:^|[^\\])[.]$/) {
 				$RespHost .= $zone_suffix;
 			    }
-			    unless ($RespUser =~ /(?:^|[^\\])[.]$/) {
+			    unless ($RespUser ~~ /(?:^|[^\\])[.]$/) {
 				$RespUser .= $zone_suffix;
 			    }
 			    #
@@ -4730,7 +4728,7 @@ sub READ_RRs {
 					  . "SOA RR must be absolute";
 			    }
 			    if ($RespHost ne ".") {
-				$tmp =~ s/[.]$//;
+				$tmp ~~ s/[.]$//;
 				if ($tmp && CHECK_NAME($tmp, 'A')) {
 				    $n = ($message) ? ".\n" : "";
 				    $message .= "${n}Invalid MNAME field in "
@@ -4739,8 +4737,8 @@ sub READ_RRs {
 			    }
 			    if ($RespUser ne ".") {
 				$tmp = $RespUser;
-				$tmp =~ s/(?:\\[.]|[^.])*[.]//;# strip 1st label
-				$tmp =~ s/[.]$//;
+				$tmp ~~ s/(?:\\[.]|[^.])*[.]//;# strip 1st label
+				$tmp ~~ s/[.]$//;
 				if (!$tmp || CHECK_NAME($tmp, 'A')) {
 				    $n = ($message) ? ".\n" : "";
 				    $message .= "${n}Invalid RNAME field in "
@@ -4751,22 +4749,22 @@ sub READ_RRs {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Invalid Serial number";
 			    }
-			    unless ($Refresh =~ /^(?:\d+|(\d+[wdhms])+)$/i) {
+			    unless ($Refresh ~~ /^(?:\d+|(\d+[wdhms])+)$/i) {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Invalid Refresh interval";
 				$Valid_SOA_Timers = 0;
 			    }
-			    unless ($Retry =~ /^(?:\d+|(\d+[wdhms])+)$/i) {
+			    unless ($Retry ~~ /^(?:\d+|(\d+[wdhms])+)$/i) {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Invalid Retry interval";
 				$Valid_SOA_Timers = 0;
 			    }
-			    unless ($Expire =~ /^(?:\d+|(\d+[wdhms])+)$/i) {
+			    unless ($Expire ~~ /^(?:\d+|(\d+[wdhms])+)$/i) {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Invalid Expiry period";
 				$Valid_SOA_Timers = 0;
 			    }
-			    unless ($Ttl =~ /^(?:\d+|(\d+[wdhms])+)$/i) {
+			    unless ($Ttl ~~ /^(?:\d+|(\d+[wdhms])+)$/i) {
 				$n = ($message) ? ".\n" : "";
 				$message .= "${n}Invalid default TTL/Negative "
 					  . "Cache period";
@@ -4775,16 +4773,16 @@ sub READ_RRs {
 			}
 		    }
 		}
-		if ($owner =~ /^\*(?:[.]..*)?$zone_pattern$/ &&
+		if ($owner ~~ /^\*(?:[.]..*)?$zone_pattern$/ &&
 		    $rrtype !~ /^(?:SOA|NS)$/ && $Audit) {
 		    #
 		    # Keep track of wildcarded owner names and their
 		    # RR types so that nothing is missed when the
 		    # AUDIT_RRs subroutine is called.
 		    #
-		    ($tmp = $owner) =~ s/^\*[.]//;
+		    ($tmp = $owner) ~~ s/^\*[.]//;
 		    if (exists($Wildcards{$tmp})) {
-			unless ($Wildcards{$tmp} =~ / $rrtype /) {
+			unless ($Wildcards{$tmp} ~~ / $rrtype /) {
 			    $Wildcards{$tmp} .= "$rrtype ";
 			}
 		    } else {
@@ -4804,7 +4802,7 @@ sub READ_RRs {
 	    } else {
 		if ($new_origin) {
 		    $new_origin = $origin if $new_origin eq "@";
-		    unless ($new_origin =~ /(?:^|[^\\])[.]$/) {
+		    unless ($new_origin ~~ /(?:^|[^\\])[.]$/) {
 			$new_origin .= $zone_suffix;
 		    }
 		    $error = ($new_origin) ? CHECK_NAME($new_origin, 'NS') : 0;
@@ -4861,7 +4859,7 @@ sub READ_RRs {
 		    $new_origin = ".";
 		}
 		$origin = $new_origin unless $new_origin eq "@";
-		$origin .= $zone_suffix unless $origin =~ /(?:^|[^\\])[.]$/;
+		$origin .= $zone_suffix unless $origin ~~ /(?:^|[^\\])[.]$/;
 		$zone_suffix = ($origin eq '.') ? "." : ".$origin";
 		$error = ($origin) ? CHECK_NAME($origin, 'NS') : 0;
 		if ($error) {
@@ -4881,7 +4879,7 @@ sub READ_RRs {
 	    unless ($tmp) {
 		$message = "Missing argument from \$TTL directive";
 	    } else {
-		if ($tmp =~ /^(?:\d+|(\d+[wdhms])+)$/) {
+		if ($tmp ~~ /^(?:\d+|(\d+[wdhms])+)$/) {
 		    $default_ttl = $tmp;
 		} else {
 		    $message = "Invalid TTL value - ignored";
@@ -4902,9 +4900,9 @@ sub READ_RRs {
 		$message = "Missing argument(s) in the \$GENERATE directive";
 		$Load_Status = 3;
 	    } else {
-		$lhs =~ s/\s+$//;
+		$lhs ~~ s/\s+$//;
 		($range, $lhs, $gen_ttl, $gen_class) = split(' ', $lhs, 4);
-		unless (defined($range) && $range =~ /(\d+)-(\d+)(.*)/) {
+		unless (defined($range) && $range ~~ /(\d+)-(\d+)(.*)/) {
 		    $message = "Invalid range argument";
 		    $Load_Status = 3;
 		} else {
@@ -4916,7 +4914,7 @@ sub READ_RRs {
 			$Load_Status = 3;
 		    }
 		    if ($step) {
-			if ($step =~ /^(.)(\d+)$/) {
+			if ($step ~~ /^(.)(\d+)$/) {
 			    $data = $1;
 			    $step = $2;
 			    if ($data ne "/") {
@@ -4953,9 +4951,9 @@ sub READ_RRs {
 			    $message = "Unknown extra field preceding the"
 				     . " RRtype argument";
 			    $Load_Status = 3;
-			} elsif ($gen_ttl =~ /^(?:\d+|(\d+[wdhms])+)$/i) {
+			} elsif ($gen_ttl ~~ /^(?:\d+|(\d+[wdhms])+)$/i) {
 			    $gen_class = undef;
-			} elsif ($gen_ttl =~ /^(?:IN|HS|CH(AOS)?|ANY)$/i) {
+			} elsif ($gen_ttl ~~ /^(?:IN|HS|CH(AOS)?|ANY)$/i) {
 			    $gen_class = $gen_ttl;
 			    $gen_ttl   = undef;
 			} else {
@@ -4974,8 +4972,8 @@ sub READ_RRs {
 				     . " RRtype argument";
 			    $Load_Status = 3;
 			} else {
-			    if ($gen_ttl =~ /^(?:IN|HS|CH(AOS)?|ANY)$/i
-				&& $gen_class =~ /^(?:\d+|(\d+[wdhms])+)$/i) {
+			    if ($gen_ttl ~~ /^(?:IN|HS|CH(AOS)?|ANY)$/i
+				&& $gen_class ~~ /^(?:\d+|(\d+[wdhms])+)$/i) {
 				#
 				# Swap the TTL and CLASS fields.
 				#
@@ -5001,7 +4999,7 @@ sub READ_RRs {
 			$message .= "Unsupported RRtype argument";
 			$Load_Status = 3;
 		    }
-		    $rdata =~ s/\s+$//;
+		    $rdata ~~ s/\s+$//;
 		}
 	    }
 	    unless ($message) {
@@ -5088,10 +5086,10 @@ sub READ_RRs {
 	}
 	if ($message && $Verbose) {
 	    if ($Verify_Mode) {
-		$message .= "." unless $message =~ /\n$/;
-		$message =~ s/\n$//;		# prevents double-spaced lines
+		$message .= "." unless $message ~~ /\n$/;
+		$message ~~ s/\n$//;		# prevents double-spaced lines
 	    } else {
-		$n = ($message =~ /\n$/) ? "" : "; ";
+		$n = ($message ~~ /\n$/) ? "" : "; ";
 		if (ref($rr_data)) {
 		    $message .= "${n}$rr_source";
 		} else {
@@ -5099,8 +5097,8 @@ sub READ_RRs {
 		}
 	    }
 	    print STDERR "\n" unless $Newline_Printed;
-	    $original_line =~ s/\n$//;		# prevents double-spaced lines
-	    if ($rr && $original_line =~ /^(\S+)?\s+(.+)/s) {
+	    $original_line ~~ s/\n$//;		# prevents double-spaced lines
+	    if ($rr && $original_line ~~ /^(\S+)?\s+(.+)/s) {
 		#
 		# Perform some cosmetic data manipulations to
 		# ensure the clarity of the diagnostic output.
@@ -5109,7 +5107,7 @@ sub READ_RRs {
 		$tmp = $2;
 		if (defined($data)) {
 		    $data = ($owner eq $origin) ? '@' : $owner;
-		    $data =~ s/$zone_pattern$//;
+		    $data ~~ s/$zone_pattern$//;
 		} else {
 		    $data = "";
 		}
@@ -5181,8 +5179,8 @@ sub MATCH_DOMAIN {
     #       "$Domain" and "$Domain_Pattern" have already been lower-cased
     #       by AUDIT_RRs(), the sole caller of this subroutine.
     #
-    while ($domain_name && ".$domain_name" =~ /$Domain_Pattern[.]$/) {
-	($uq_domain_name = $domain_name) =~ s/$Domain_Pattern[.]$//;
+    while ($domain_name && ".$domain_name" ~~ /$Domain_Pattern[.]$/) {
+	($uq_domain_name = $domain_name) ~~ s/$Domain_Pattern[.]$//;
 	#
 	# The following test will be made for each label of the passed
 	# domain name until either a subzone is matched or the current
@@ -5275,7 +5273,7 @@ sub MATCH_DOMAIN {
 	# it from the domain name prior to the next attempt
 	# at matching a child domain/wildcard.
 	#
-	$domain_name =~ s/(?:\\[.]|[^.])*[.]//;
+	$domain_name ~~ s/(?:\\[.]|[^.])*[.]//;
     }
     return ($subzone, $wildcard, $wildcard_rrtypes);
 }
@@ -5350,8 +5348,8 @@ sub AUDIT_RRs {
     # the name server from the SOA MNAME field, to the list of any name
     # servers found in the READ_RRs subroutine.
     #
-    unless ($RespHost =~ /^[.]?$/) {
-	($host = lc($RespHost)) =~ s/$Domain_Pattern[.]$//;
+    unless ($RespHost ~~ /^[.]?$/) {
+	($host = lc($RespHost)) ~~ s/$Domain_Pattern[.]$//;
 	if (exists($NSlist{$host})) {
 	    $NSlist{$host} = "$location, $NSlist{$host}";
 	} else {
@@ -5366,11 +5364,11 @@ sub AUDIT_RRs {
 	# be added to any `spcl' mailhosts.
 	#
 	foreach $host (@Full_Servers) {
-	    ($host = lc($host)) =~ s/$Domain_Pattern[.]$//o;
+	    ($host = lc($host)) ~~ s/$Domain_Pattern[.]$//o;
 	    if (exists($NSlist{$host})) {
 		$location = $NSlist{$host};
-		if ($location =~ /-h option/) {
-		    $location =~ s/-h option/-h,-s options/;
+		if ($location ~~ /-h option/) {
+		    $location ~~ s/-h option/-h,-s options/;
 		} elsif ($location !~ /-s option/) {
 		    $location = "-s option, $location";
 		}
@@ -5386,11 +5384,11 @@ sub AUDIT_RRs {
 	foreach $tmp (keys %Partial_Servers) {
 	    @temp = split(' ', $Partial_Servers{$tmp});
 	    foreach $host (@temp) {
-		($host = lc($host)) =~ s/$Domain_Pattern[.]$//o;
+		($host = lc($host)) ~~ s/$Domain_Pattern[.]$//o;
 		if (exists($NSlist{$host})) {
 		    $location = $NSlist{$host};
-		    if ($location =~ /-[hs] option/) {
-			$location =~ s/([^ ]+) options?/$1,-S options/;
+		    if ($location ~~ /-[hs] option/) {
+			$location ~~ s/([^ ]+) options?/$1,-S options/;
 		    } elsif ($location !~ /-S option/) {
 			$location = "-S option, $location";
 		    }
@@ -5417,8 +5415,8 @@ sub AUDIT_RRs {
 		$host = ($host eq '@') ? "$Domain." : lc($host);
 		if (exists($MXlist{$host})) {
 		    $location = $MXlist{$host};
-		    if ($location =~ /^-T option/) {
-			$location =~ s/-T option/-T,-m options/;
+		    if ($location ~~ /^-T option/) {
+			$location ~~ s/-T option/-T,-m options/;
 		    } elsif ($location !~ /-m option/) {
 			$location = "-m option, $location";
 		    }
@@ -5452,9 +5450,9 @@ sub AUDIT_RRs {
 		$match = 1;
 	    } elsif (exists($RRowners{$host})) {
 		$rrtype = $RRowners{$host};
-		if ($rrtype =~ / (?:A|AAAA) /) {
+		if ($rrtype ~~ / (?:A|AAAA) /) {
 		    $match = 1;
-		} elsif ($rrtype =~ / CNAME /) {
+		} elsif ($rrtype ~~ / CNAME /) {
 		    $match = $warning = 1;
 		    $NSlist{$host} = "[CNAME record]|$NSlist{$host}";
 		} elsif ($rrtype eq " ") {
@@ -5482,10 +5480,10 @@ sub AUDIT_RRs {
 		    $Ext_NS{$fq_host} = $location if $Query_External_Domains;
 		} elsif (!$match && $wildcard) {
 		    $match = 1;
-		    unless ($rrtype =~ / (?:A|AAAA) /) {
-			if ($rrtype =~ / CNAME /) {
+		    unless ($rrtype ~~ / (?:A|AAAA) /) {
+			if ($rrtype ~~ / CNAME /) {
 			    $warning = "(*) CNAME RR";
-			} elsif ($rrtype =~ / MX /) {
+			} elsif ($rrtype ~~ / MX /) {
 			    $warning = " (*) MX RR  ";
 			} else {
 			    $warning = "(*) non-A RR";
@@ -5523,9 +5521,9 @@ sub AUDIT_RRs {
 		$match = 1;
 	    } elsif (exists($RRowners{$host})) {
 		$rrtype = $RRowners{$host};
-		if ($rrtype =~ / (?:A|AAAA) /) {
+		if ($rrtype ~~ / (?:A|AAAA) /) {
 		    $match = 1;
-		} elsif ($rrtype =~ / CNAME /) {
+		} elsif ($rrtype ~~ / CNAME /) {
 		    $match = $warning = 1;
 		    $MXlist{$host} = "[CNAME record]|$MXlist{$host}";
 		} elsif ($rrtype eq " ") {
@@ -5546,10 +5544,10 @@ sub AUDIT_RRs {
 		    $ext_mx{$fq_host} = $location if $Query_External_Domains;
 		} elsif (!$match && $wildcard) {
 		    $match = 1;
-		    unless ($rrtype =~ / (?:A|AAAA) /) {
-			if ($rrtype =~ / CNAME /) {
+		    unless ($rrtype ~~ / (?:A|AAAA) /) {
+			if ($rrtype ~~ / CNAME /) {
 			    $warning = "(*) CNAME RR";
-			} elsif ($rrtype =~ / MX /) {
+			} elsif ($rrtype ~~ / MX /) {
 			    $warning = " (*) MX RR  ";
 			} else {
 			    $warning = "(*) non-A RR";
@@ -5584,9 +5582,9 @@ sub AUDIT_RRs {
 		$match = 1;
 	    } elsif (exists($RRowners{$host})) {
 		$rrtype = $RRowners{$host};
-		if ($rrtype =~ / (?:A|AAAA) /) {
+		if ($rrtype ~~ / (?:A|AAAA) /) {
 		    $match = 1;
-		} elsif ($rrtype =~ / CNAME /) {
+		} elsif ($rrtype ~~ / CNAME /) {
 		    $match = $warning = 1;
 		    $Spcl_SRV{$host} = "[CNAME record]|$Spcl_SRV{$host}";
 		} elsif ($rrtype eq " ") {
@@ -5607,10 +5605,10 @@ sub AUDIT_RRs {
 		    $ext_srv{$fq_host} = $location if $Query_External_Domains;
 		} elsif (!$match && $wildcard) {
 		    $match = 1;
-		    unless ($rrtype =~ / (?:A|AAAA) /) {
-			if ($rrtype =~ / CNAME /) {
+		    unless ($rrtype ~~ / (?:A|AAAA) /) {
+			if ($rrtype ~~ / CNAME /) {
 			    $warning = "(*) CNAME RR";
-			} elsif ($rrtype =~ / MX /) {
+			} elsif ($rrtype ~~ / MX /) {
 			    $warning = " (*) MX RR  ";
 			} else {
 			    $warning = "(*) non-A RR";
@@ -5645,9 +5643,9 @@ sub AUDIT_RRs {
 		$match = 1;
 	    } elsif (exists($RRowners{$host})) {
 		$rrtype = $RRowners{$host};
-		if ($rrtype =~ / (?:A|AAAA|NSAP) /) {
+		if ($rrtype ~~ / (?:A|AAAA|NSAP) /) {
 		    $match = 1;
-		} elsif ($rrtype =~ / CNAME /) {
+		} elsif ($rrtype ~~ / CNAME /) {
 		    $match = $warning = 1;
 		    $Spcl_PTR{$host} = "[CNAME record]|$Spcl_PTR{$host}";
 		} elsif ($rrtype eq " ") {
@@ -5668,10 +5666,10 @@ sub AUDIT_RRs {
 		    $ext_ptr{$fq_host} = $location if $Query_External_Domains;
 		} elsif (!$match && $wildcard) {
 		    $match = 1;
-		    unless ($rrtype =~ / (?:A|AAAA|NSAP) /) {
-			if ($rrtype =~ / CNAME /) {
+		    unless ($rrtype ~~ / (?:A|AAAA|NSAP) /) {
+			if ($rrtype ~~ / CNAME /) {
 			    $warning = "(*) CNAME RR";
-			} elsif ($rrtype =~ / MX /) {
+			} elsif ($rrtype ~~ / MX /) {
 			    $warning = " (*) MX RR  ";
 			} else {
 			    $warning = "(*) non-A RR";
@@ -5706,9 +5704,9 @@ sub AUDIT_RRs {
 		$match = 1;
 	    } elsif (exists($RRowners{$host})) {
 		$rrtype = $RRowners{$host};
-		if ($rrtype =~ / (?:A|AAAA) /) {
+		if ($rrtype ~~ / (?:A|AAAA) /) {
 		    $match = 1;
-		} elsif ($rrtype =~ / CNAME /) {
+		} elsif ($rrtype ~~ / CNAME /) {
 		    $match = $warning = 1;
 		    $Spcl_AFSDB{$host} = "[CNAME record]|$Spcl_AFSDB{$host}";
 		} elsif ($rrtype eq " ") {
@@ -5729,10 +5727,10 @@ sub AUDIT_RRs {
 		    $ext_afsdb{$fq_host} = $location if $Query_External_Domains;
 		} elsif (!$match && $wildcard) {
 		    $match = 1;
-		    unless ($rrtype =~ / (?:A|AAAA) /) {
-			if ($rrtype =~ / CNAME /) {
+		    unless ($rrtype ~~ / (?:A|AAAA) /) {
+			if ($rrtype ~~ / CNAME /) {
 			    $warning = "(*) CNAME RR";
-			} elsif ($rrtype =~ / MX /) {
+			} elsif ($rrtype ~~ / MX /) {
 			    $warning = " (*) MX RR  ";
 			} else {
 			    $warning = "(*) non-A RR";
@@ -5767,9 +5765,9 @@ sub AUDIT_RRs {
 		$match = 1;
 	    } elsif (exists($RRowners{$host})) {
 		$rrtype = $RRowners{$host};
-		if ($rrtype =~ / (?:A|AAAA|ISDN|X25) /) {
+		if ($rrtype ~~ / (?:A|AAAA|ISDN|X25) /) {
 		    $match = 1;
-		} elsif ($rrtype =~ / CNAME /) {
+		} elsif ($rrtype ~~ / CNAME /) {
 		    $match = $warning = 1;
 		    $Spcl_RT{$host} = "[CNAME record]|$Spcl_RT{$host}";
 		} elsif ($rrtype eq " ") {
@@ -5790,10 +5788,10 @@ sub AUDIT_RRs {
 		    $ext_rt{$fq_host} = $location if $Query_External_Domains;
 		} elsif (!$match && $wildcard) {
 		    $match = 1;
-		    unless ($rrtype =~ / (?:A|AAAA|ISDN|X25) /) {
-			if ($rrtype =~ / CNAME /) {
+		    unless ($rrtype ~~ / (?:A|AAAA|ISDN|X25) /) {
+			if ($rrtype ~~ / CNAME /) {
 			    $warning = "(*) CNAME RR";
-			} elsif ($rrtype =~ / MX /) {
+			} elsif ($rrtype ~~ / MX /) {
 			    $warning = " (*) MX RR  ";
 			} else {
 			    $warning = "(*) non-A RR";
@@ -5826,9 +5824,9 @@ sub AUDIT_RRs {
 	    $match = $warning = 0;
 	    if (exists($RRowners{$host})) {
 		$rrtype = $RRowners{$host};
-		if ($rrtype =~ / TXT /) {
+		if ($rrtype ~~ / TXT /) {
 		    $match = 1;
-		} elsif ($rrtype =~ / CNAME /) {
+		} elsif ($rrtype ~~ / CNAME /) {
 		    $match = $warning = 1;
 		    $Spcl_RP{$host} = "[CNAME record]|$Spcl_RP{$host}";
 		} elsif ($rrtype eq " ") {
@@ -5849,10 +5847,10 @@ sub AUDIT_RRs {
 		    $ext_rp{$fq_host} = $location if $Query_External_Domains;
 		} elsif (!$match && $wildcard) {
 		    $match = 1;
-		    unless ($rrtype =~ / TXT /) {
-			if ($rrtype =~ / CNAME /) {
+		    unless ($rrtype ~~ / TXT /) {
+			if ($rrtype ~~ / CNAME /) {
 			    $warning = "(*) CNAME RR";
-			} elsif ($rrtype =~ / MX /) {
+			} elsif ($rrtype ~~ / MX /) {
 			    $warning = " (*) MX RR  ";
 			} else {
 			    $warning = "(*)nonTXT RR";
@@ -6091,7 +6089,7 @@ sub AUDIT_RRs {
 			$authority = $3;
 			$additional = $4;
 			if ($answer == 0) {
-			    if ($rrtype =~ /^(?:NS|MX|SRV|PTR|AFSDB|RT)$/) {
+			    if ($rrtype ~~ /^(?:NS|MX|SRV|PTR|AFSDB|RT)$/) {
 				$result = "no A record ";
 			    } elsif ($rrtype eq 'RP') {
 				$result = " no TXT RR  ";
@@ -6132,11 +6130,11 @@ sub AUDIT_RRs {
 		    if ($query_section && /^;;?\s*(\S+)\s+/) {
 			$tmp = lc($1);
 			$query_section = 0;
-			if ($tmp =~ /,$/) {
+			if ($tmp ~~ /,$/) {
 			    #
 			    # DiG versions through 8.X match this pattern.
 			    #
-			    $tmp =~ s/,$/./;
+			    $tmp ~~ s/,$/./;
 			    $tmp = "." if $tmp eq "..";	# '.' zone special case
 			}
 			if ($tmp ne lc($host)) {
@@ -6214,7 +6212,7 @@ sub AUDIT_RRs {
 				if ($Show_Chained_CNAMEs
 				    || $Show_Dangling_CNAMEs
 				    || $result !~ /(?:NXDOMAIN|no RRs exist)/) {
-				    $ext_cname{$cname} =~ s/\[.+\]/[$result]/;
+				    $ext_cname{$cname} ~~ s/\[.+\]/[$result]/;
 				    $max_chain_length = $chain_length;
 				} else {
 				    delete($ext_cname{$cname});
@@ -6283,7 +6281,7 @@ sub AUDIT_RRs {
 				    # already encountered in the current chain.
 				    #
 				    if ($chain_cname{$cname}[$k] eq $cname_n) {
-					$ext_cname{$cname} =~
+					$ext_cname{$cname} ~~
 				     s/^[^\|]+/[ CNAME loop ]\($chain_length\)/;
 					$cname_loop = 1;
 					last;
@@ -6295,7 +6293,7 @@ sub AUDIT_RRs {
 				# the chain length of the base CNAME and add
 				# the latest CNAME to the list of chain members.
 				#
-				$ext_cname{$cname} =~
+				$ext_cname{$cname} ~~
 					     s/ \]\(\d+\)/ \]\($chain_length\)/;
 				push @{ $chain_cname{$cname} }, $cname_n;
 				if ($nextbatch_is_open && !$cname_loop) {
@@ -6372,7 +6370,7 @@ sub AUDIT_RRs {
 			    } elsif ($rrtype eq 'RP') {
 				delete($ext_rp{$host});
 			    } elsif ($Show_Chained_CNAMEs &&
-				     $ext_cname{$cname} =~ /\]\(\d+\)/) {
+				     $ext_cname{$cname} ~~ /\]\(\d+\)/) {
 				$max_chain_length = $chain_length;
 			    } else {
 				delete($ext_cname{$cname});
@@ -6440,14 +6438,14 @@ sub AUDIT_RRs {
 	    # In such cases, assign a generic status field that indicates
 	    # roughly what happened.
 	    #
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode && $location ne "(SOA MNAME)";
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %Ext_NS) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode && $location ne "(SOA MNAME)";
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
@@ -6458,14 +6456,14 @@ sub AUDIT_RRs {
 		     "the following problematic domain name(s):\n";
 	$n = "";
 	while (($host, $tmp) = each %MXlist) {
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %ext_mx) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
@@ -6476,14 +6474,14 @@ sub AUDIT_RRs {
 		     "the following problematic domain name(s):\n";
 	$n = "";
 	while (($host, $tmp) = each %Spcl_SRV) {
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %ext_srv) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
@@ -6494,14 +6492,14 @@ sub AUDIT_RRs {
 		     "the following problematic domain name(s):\n";
 	$n = "";
 	while (($host, $tmp) = each %Spcl_PTR) {
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %ext_ptr) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
@@ -6512,14 +6510,14 @@ sub AUDIT_RRs {
 		     "the following problematic dom. name(s):\n";
 	$n = "";
 	while (($host, $tmp) = each %Spcl_AFSDB) {
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %ext_afsdb) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
@@ -6530,14 +6528,14 @@ sub AUDIT_RRs {
 		     "the following problematic domain name(s):\n";
 	$n = "";
 	while (($host, $tmp) = each %Spcl_RT) {
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %ext_rt) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
@@ -6548,14 +6546,14 @@ sub AUDIT_RRs {
 		     "the following problematic TXT domain(s):\n";
 	$n = "";
 	while (($host, $tmp) = each %Spcl_RP) {
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %ext_rp) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
@@ -6575,20 +6573,20 @@ sub AUDIT_RRs {
 	    $i = ($max_chain_length < 10) ? "   " : "    ";
 	}
 	while (($host, $tmp) = each %Spcl_CNAME) {
-	    $host .= ".$Audit_Domain" unless $host =~ /(?:^|[^\\])[.]$/;
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $host .= ".$Audit_Domain" unless $host ~~ /(?:^|[^\\])[.]$/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
-	    $status .= ($status =~ /\)$/) ? "" : $i;
+	    $status .= ($status ~~ /\)$/) ? "" : $i;
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
 	}
 	while (($host, $tmp) = each %ext_cname) {
-	    $tmp = "[sync. error ]|$tmp" unless $tmp =~ /\|/;
+	    $tmp = "[sync. error ]|$tmp" unless $tmp ~~ /\|/;
 	    ($status, $location) = split(/\|/, $tmp, 2);
-	    $status .= ($status =~ /\)$/) ? "" : $i;
+	    $status .= ($status ~~ /\)$/) ? "" : $i;
 	    $location = "" if $Verify_Mode;
 	    printf STDERR "%s%s  %s\n", TAB(" $host", $t), $status, $location;
-	    if ($Show_Chained_CNAMEs && $status =~ /\]\((\d+)\)/) {
+	    if ($Show_Chained_CNAMEs && $status ~~ /\]\((\d+)\)/) {
 		$chain_length = $1;
 		for ($k = 1; $k <= $chain_length; $k++) {
 		    print STDERR "  > $chain_cname{$host}[$k]\n";
@@ -6660,8 +6658,8 @@ sub AUDIT_RRs {
 	    if ($zone ne "$Domain.") {
 		$status = 1;
 		$subzone = $zone;
-		while ($subzone =~ /(?:\\[.]|[^.])*[.]/) {
-		    $subzone =~ s/(?:\\[.]|[^.])*[.]//;	# remove leftmost label
+		while ($subzone ~~ /(?:\\[.]|[^.])*[.]/) {
+		    $subzone ~~ s/(?:\\[.]|[^.])*[.]//;	# remove leftmost label
 		    if (exists($NSowners{$subzone})) {
 			#
 			# Our original "$zone" is a bogus delegation because of
@@ -6690,7 +6688,7 @@ sub AUDIT_RRs {
 			$status = 0;
 		    }
 		}
-		unless ($host =~ /(?:^|[^\\])[.]$/) {
+		unless ($host ~~ /(?:^|[^\\])[.]$/) {
 		    #
 		    # The domain name of the name server for the (sub)zone
 		    # being checked is not absolute.  Another check must be
@@ -6857,7 +6855,7 @@ sub AUDIT_RRs {
 			    if (!$Verify_Mode && exists($Hosts{$host})) {
 				$glue_rr{$host} = $glue_found = 1;
 			    } elsif (exists($RRowners{$host})) {
-				if ($RRowners{$host} =~ / (?:A|AAAA) /) {
+				if ($RRowners{$host} ~~ / (?:A|AAAA) /) {
 				    $glue_rr{$host} = $glue_found = 1;
 				}
 			    }
@@ -6916,7 +6914,7 @@ sub AUDIT_RRs {
 			    #
 			    %already_seen = ();
 			    $already_seen{$zone} = $glueless_depth = 0;
-			    ($chained_subzone = $subzone) =~
+			    ($chained_subzone = $subzone) ~~
 							s/$Domain_Pattern[.]$//;
 			    @subzone_queue = ($chained_subzone,
 					      $glueless_depth);
@@ -6971,7 +6969,7 @@ sub AUDIT_RRs {
 				    #
 				    ($tmp, $ns_host, $ns_list) =
 							split(' ', $ns_list, 3);
-				    if ($ns_host =~ /(?:^|[^\\])[.]$/) {
+				    if ($ns_host ~~ /(?:^|[^\\])[.]$/) {
 					#
 					# The name server's domain name is
 					# absolute and thus is not located
@@ -7012,7 +7010,7 @@ sub AUDIT_RRs {
 								= 1;
 					} elsif (exists($RRowners{$ns_host})) {
 					    if ($RRowners{$ns_host}
-						=~ / (?:A|AAAA) /) {
+						~~ / (?:A|AAAA) /) {
 						$glue_rr{$ns_host}= $glue_found
 								   = 1;
 					    }
@@ -7026,7 +7024,7 @@ sub AUDIT_RRs {
 				    # delegations through which we'll continue
 				    # the search for glue.
 				    #
-				    $ns_subzone =~ s/$Domain_Pattern[.]$//;
+				    $ns_subzone ~~ s/$Domain_Pattern[.]$//;
 				    unless ($already_queued{$ns_subzone}) {
 					push(@subzone_queue, $ns_subzone,
 							     $glueless_depth);
@@ -7160,7 +7158,7 @@ sub AUDIT_RRs {
 	scalar(keys(%RRowners));
 	while (($host, $rrtype) = each %RRowners) {
 	    next if $host eq "$Domain.";
-	    $fq_host = ($host =~ /[.]$/) ? $host : "$host.$Audit_Domain";
+	    $fq_host = ($host ~~ /[.]$/) ? $host : "$host.$Audit_Domain";
 	    ($subzone, $tmp, $tmp) = MATCH_DOMAIN($fq_host);
 	    if ($subzone) {
 		if ($fq_host eq $subzone) {
@@ -7168,7 +7166,7 @@ sub AUDIT_RRs {
 		    # We are at a zone cut.  Remove the NS RRtype
 		    # and, if present, any DNSSEC-related RRtypes.
 		    #
-		    1 while $rrtype =~ s/ (?:NS|DS|$DNSSEC_RRtypes) / /go;
+		    1 while $rrtype ~~ s/ (?:NS|DS|$DNSSEC_RRtypes) / /go;
 		}
 		if (exists($glue_rr{$host})) {
 		    #
@@ -7177,7 +7175,7 @@ sub AUDIT_RRs {
 		    # than A or AAAA (if we're still at a zone cut, the NS
 		    # and DNSSEC records have already been taken care of).
 		    #
-		    1 while $rrtype =~ s/ (?:A|AAAA) / /g;
+		    1 while $rrtype ~~ s/ (?:A|AAAA) / /g;
 		}
 		next if $rrtype eq " ";
 		$non_glue_rr{$host} = $rrtype;
@@ -7204,12 +7202,12 @@ sub AUDIT_RRs {
 	    $warning = 0;
 	    while (($host, $rrtype) = each %non_glue_rr) {
 		$match = 1;
-		while ($rrtype =~ /\S/) {
+		while ($rrtype ~~ /\S/) {
 		    $tmp = $rrtype;
-		    $tmp =~ /^\s*(\S+)(.*)/;
+		    $tmp ~~ /^\s*(\S+)(.*)/;
 		    $tmp = $1;
 		    $rrtype = $2;
-		    $warning = 1 unless $tmp =~ /^(?:A|AAAA)$/;
+		    $warning = 1 unless $tmp ~~ /^(?:A|AAAA)$/;
 		    if ($match) {
 			printf STDERR "%s%s\t...\n", TAB(" $host", 32), $tmp;
 			$match = 0;
@@ -7399,8 +7397,8 @@ sub CHECK_ZONE {
     #       anomalies.
     #
     #
-    ($ns_data = $NSowners{"$Domain."}) =~ s/ \d+ (\S+)/$1 /g;
-    $ns_data =~ s/([^.]|\\[.]) /$1.$Audit_Domain /g;
+    ($ns_data = $NSowners{"$Domain."}) ~~ s/ \d+ (\S+)/$1 /g;
+    $ns_data ~~ s/([^.]|\\[.]) /$1.$Audit_Domain /g;
     @zone_rrset = split(' ', $ns_data);
     @sorted_rrset = sort { $a cmp $b } @zone_rrset;
     @zone_rrset = @sorted_rrset;
@@ -7471,7 +7469,7 @@ sub CHECK_ZONE {
 		    # For each zone, cycle through each listed name server.
 		    #
 		    ($ttl, $host, $buffer) = split(' ', $buffer, 3);
-		    if ($host =~ /(?:^|[^\\])[.]$/) {
+		    if ($host ~~ /(?:^|[^\\])[.]$/) {
 			$fq_host = $host;
 		    } else {
 			$fq_host = "$host.$Audit_Domain";
@@ -7489,7 +7487,7 @@ sub CHECK_ZONE {
 			# but only if it is not already registered.
 			#
 			unless (exists($check_del_rr{$zone}) &&
-				$check_del_rr{$zone} =~ / $fq_host /) {
+				$check_del_rr{$zone} ~~ / $fq_host /) {
 			    print DELBATCH "$zone\t\t$ttl\tIN NS\t$fq_host\n";
 			    $check_del_rr{$zone} .= " $fq_host ";
 			}
@@ -7632,12 +7630,12 @@ sub VERIFY_ZONE {
 	#         characters in its displayed answers even when querying a
 	#         name server that is running a BIND version earlier than 9.1.2.
 	#
-	$V_opt_domain =~ s/([^\\])@/$1\\@/g;
+	$V_opt_domain ~~ s/([^\\])@/$1\\@/g;
 	$Data_Fname = $V_opt_domain;
 	if ($DiG_Version_Num >= 90102) {
-	    $Data_Fname =~ s/\\([<|>&\?;'`])/$1/g;
+	    $Data_Fname ~~ s/\\([<|>&\?;'`])/$1/g;
 	} else {
-	    $Data_Fname =~ s/\\([<|>&\(\)\?;'`])/$1/g;
+	    $Data_Fname ~~ s/\\([<|>&\(\)\?;'`])/$1/g;
 	}
 	print STDOUT "$separator",
 		     "\nVerifying zone data for domain `$Data_Fname':\n",
@@ -7788,7 +7786,7 @@ sub VERIFY_ZONE {
 		    next if !/[.]\s.*\sA\s+/;	# only deal with IPv4 A records
 		    s/[.]\s.*\sA\s+/ /;
 		    $tmp = $_;
-		    $tmp =~ s/.+ //;
+		    $tmp ~~ s/.+ //;
 		    $addr = pack('C4', split(/[.]/, $tmp, 4));
 		    $match = 0;
 		    foreach $tmp (@Our_Addrs) {
@@ -7958,7 +7956,7 @@ sub VERIFY_ZONE {
 			    s/[^:]+: //;
 			    chop;
 			    $message = ucfirst($_);
-			    $message .= "." unless $message =~ /[.]$/;
+			    $message .= "." unless $message ~~ /[.]$/;
 			    last;
 			}
 		    }
@@ -8002,14 +8000,14 @@ sub VERIFY_ZONE {
 	    #       contained therein get escaped.
 	    #
 	    if ($DiG_Version_Num >= 90102) {
-		$V_opt_domain =~ s/\\([<|>&\?'`])/$1/g;
+		$V_opt_domain ~~ s/\\([<|>&\?'`])/$1/g;
 	    } else {
-		$V_opt_domain =~ s/\\([<|>&\(\)\?'`])/$1/g;
+		$V_opt_domain ~~ s/\\([<|>&\(\)\?'`])/$1/g;
 	    }
 	    $Domain = $origin = $V_opt_domain;
-	    $Domain =~ s/[.]$//;
+	    $Domain ~~ s/[.]$//;
 	    $Domain_Pattern = ($V_opt_domain ne '.') ? ".$Domain" : "";
-	    $Domain_Pattern =~ s/([.\|\\\$\^\+\[\(\)\?'`])/\\$1/g;
+	    $Domain_Pattern ~~ s/([.\|\\\$\^\+\[\(\)\?'`])/\\$1/g;
 	    $SOA_Count = 0;
 	    $RespHost = $RespUser = "";
 	    $Refresh = $Retry = $Expire = $Ttl = "";
@@ -8081,7 +8079,7 @@ sub VERIFY_ZONE {
 sub REVERSE {
     my ($dotted_token) = @_;
 
-    $dotted_token =~ s/([^\\])[.]/$1 /g;
+    $dotted_token ~~ s/([^\\])[.]/$1 /g;
     return join('.', reverse(split(' ', $dotted_token)));
 }
 
@@ -8101,26 +8099,26 @@ sub EXPAND_IPv6 {
     my ($addr, $expand_level) = @_;
     my ($format, @binary_addr);
 
-    if ($addr =~ /::/) {
+    if ($addr ~~ /::/) {
 
         my $colon_count;
 
         # Reconstitute the missing 16-bit zero field(s) of
         # the compressed address.
         #
-        $colon_count = ($addr =~ tr/:/:/);
-        $colon_count-- if $addr =~ /^:/;
-        $colon_count-- if $addr =~ /:$/;
-        $addr =~ s/::/':' x (9 - $colon_count)/e;
-        1 while $addr =~ s/::/:0:/g;
-        $addr =~ s/^:|:$//g;
+        $colon_count = ($addr ~~ tr/:/:/);
+        $colon_count-- if $addr ~~ /^:/;
+        $colon_count-- if $addr ~~ /:$/;
+        $addr ~~ s/::/':' x (9 - $colon_count)/e;
+        1 while $addr ~~ s/::/:0:/g;
+        $addr ~~ s/^:|:$//g;
     }
     if ($expand_level eq 'PARTIAL') {
 	#
 	# Remove any unnecessary leading zeros.
 	# NOTE: Although the following regex will do the job:
 	#
-	#         $addr =~ s/(^|:)0+([^:]+)/$1$2/g;
+	#         $addr ~~ s/(^|:)0+([^:]+)/$1$2/g;
 	#
 	#       it suffers from exponentially slow backtracking.
 	#       Luckily, this is Perl in which there's more than
@@ -8223,7 +8221,7 @@ sub COMPRESS_IPv6 {
 	$char_addr[$field] = '';
     }
     $addr = sprintf("%s:%s:%s:%s:%s:%s:%s:%s", @char_addr);
-    $addr =~ s/:::+/::/;
+    $addr ~~ s/:::+/::/;
     return $addr;
 }
 
@@ -8370,7 +8368,7 @@ sub PARSE_ARGS {
 		next;
 	    } elsif ($option !~ /^(?:$h2n_opts)$/o
 		     && $option !~ /^(?:$verify_opts)$/io) {
-		if ($option =~ /^[+-].+/) {
+		if ($option ~~ /^[+-].+/) {
 		    print STDERR "Unknown option `$option'; ignored.\n";
 		} else {
 		    print STDERR "Extraneous input `$option'; ignored.\n";
@@ -8382,7 +8380,7 @@ sub PARSE_ARGS {
 
 	if (@option_history) {
 	    $previous_option = $option_history[-1];    # -1 = last array element
-	    if ($previous_option =~ /^(?:[+](?:om|os))|-S$/
+	    if ($previous_option ~~ /^(?:[+](?:om|os))|-S$/
 		&& $option !~ /^(?:[+](?:om|os))|-S$/) {
 		#
 		# Re-initialize "$last_n_or_d" which holds the "db"
@@ -8390,49 +8388,49 @@ sub PARSE_ARGS {
 		# accumulated "db" files from each of the preceding
 		# -n options.
 		#
-		$last_n_or_d = "-n" unless ($previous_option =~ /^[+](?:om|os)$/
+		$last_n_or_d = "-n" unless ($previous_option ~~ /^[+](?:om|os)$/
 					    && $last_n_or_d eq "");
 	    }
 	}
 	push(@option_history, $option);
 
-	if ($option =~ /^(?:$verify_opts)$/io) {
-	    $option_modifier = ($option =~ /^--?no/i) ? 'no' : "";
-	    if ($option =~ /^--?(?:no-?)?(show|hide)/i) {
+	if ($option ~~ /^(?:$verify_opts)$/io) {
+	    $option_modifier = ($option ~~ /^--?no/i) ? 'no' : "";
+	    if ($option ~~ /^--?(?:no-?)?(show|hide)/i) {
 		$option_modifier .= "-" . lc($1);
 	    }
 	    $option_value = "";
-	    if ($original_option =~ /^--?(?:no-?)?(?:check|verify)[_-]?del$/i) {
+	    if ($original_option ~~ /^--?(?:no-?)?(?:check|verify)[_-]?del$/i) {
 		$option = 'check-del';
-	    } elsif ($original_option =~ /^--?(?:no-?)?debug([:=].*)?$/i) {
+	    } elsif ($original_option ~~ /^--?(?:no-?)?debug([:=].*)?$/i) {
 		$option       = 'debug';
 		$option_value = $1 if defined($1);
-	    } elsif ($original_option =~ /^--?(?:no-?)?recurs(?:e|ive|ion)
+	    } elsif ($original_option ~~ /^--?(?:no-?)?recurs(?:e|ive|ion)
 					  ([:=].*)?$/ix) {
 		$option       = 'recurse';
 		$option_value = $1 if defined($1);
-	    } elsif ($original_option =~ /^--?(?:no-?)?(?:show|hide)-?single-?
+	    } elsif ($original_option ~~ /^--?(?:no-?)?(?:show|hide)-?single-?
 					  (?:ns|del(?:egation)s?)?$/ix) {
 		$option = 'single-ns';
-	    } elsif ($original_option =~ /^--?(?:no-?)?(?:show|hide)-?
+	    } elsif ($original_option ~~ /^--?(?:no-?)?(?:show|hide)-?
 					  (?:dangling|nxdomain)-?cnames?$/ix) {
 		$option = 'dangling-cnames';
-	    } elsif ($original_option =~ /^--?(?:no-?)?(?:show|hide)-?
+	    } elsif ($original_option ~~ /^--?(?:no-?)?(?:show|hide)-?
 					  (?:cname|chained)-?
 					  (?:chain|cname)s?$/ix) {
 		$option = 'chained-cnames';
-	    } elsif ($original_option =~ /^--?(?:no-?)?query-?
+	    } elsif ($original_option ~~ /^--?(?:no-?)?query-?
 					  (?:ext(?:ernal)?)?-?
 					  (?:domains?|names?)?$/ix) {
 		$option = 'query-external-domains';
-	    } elsif ($original_option =~ /^--?glue(?:less)?-?(?:limit|levels?)?
+	    } elsif ($original_option ~~ /^--?glue(?:less)?-?(?:limit|levels?)?
 					  ([:=].*)?$/ix) {
 		$option       = 'glue-level';
 		$option_value = $1 if defined($1);
 	    } else {
 		$option = 'help';
 	    }
-	    $option_value =~ s/^[:=]// if $option_value;
+	    $option_value ~~ s/^[:=]// if $option_value;
 	}
 
 	@option_args = ();
@@ -8466,9 +8464,9 @@ sub PARSE_ARGS {
 	    $last_n_or_d = "-n" if ($option eq "-n" && $last_n_or_d eq "");
 	    while (@option_args) {
 		$argument = shift(@option_args);
-		if ($argument =~ /^(?:mode|domain|ptr-owner|db|spcl)=/i) {
-		    if ($argument =~ /^mode=/i) {
-			$argument =~ s/=.*/=/;
+		if ($argument ~~ /^(?:mode|domain|ptr-owner|db|spcl)=/i) {
+		    if ($argument ~~ /^mode=/i) {
+			$argument ~~ s/=.*/=/;
 			print STDERR "Improper $option option.\nA network ",
 				     "number must precede `$argument'.\n";
                     } elsif ($option eq "-n") {
@@ -8482,10 +8480,10 @@ sub PARSE_ARGS {
 		    $message_count++;
 		    last;
 		}
-		if ($argument =~ /:/) {
+		if ($argument ~~ /:/) {
 		    ($net, $subnetmask) = split(/:/, $argument, 2);
 		    $cidr_size = undef;
-		} elsif ($argument =~ /\//) {
+		} elsif ($argument ~~ /\//) {
 		    ($net, $cidr_size) = split('/', $argument, 2);
 		    $subnetmask = undef;
 		} else {
@@ -8518,27 +8516,27 @@ sub PARSE_ARGS {
 			  = $alt_spcl_arg = $alt_spcl_file = $other_args = "";
 		$alt_spcl_file = "";
 		while (@option_args &&
-		       ((($next_arg = $option_args[0]) =~ /^mode=/i
+		       ((($next_arg = $option_args[0]) ~~ /^mode=/i
 						     && !$supernet)   ||
-			($next_arg =~ /^domain=/i    && !$domain_arg) ||
-			($next_arg =~ /^ptr-owner=/i && !$ptr_arg)    ||
-			($next_arg =~ /^db=/i        && !$alt_db_arg) ||
-			($next_arg =~ /^spcl=/i      && !$alt_spcl_arg))) {
+			($next_arg ~~ /^domain=/i    && !$domain_arg) ||
+			($next_arg ~~ /^ptr-owner=/i && !$ptr_arg)    ||
+			($next_arg ~~ /^db=/i        && !$alt_db_arg) ||
+			($next_arg ~~ /^spcl=/i      && !$alt_spcl_arg))) {
 		    $arg2 = shift(@option_args);
-		    if ($arg2 =~ /^mode=/i) {
+		    if ($arg2 ~~ /^mode=/i) {
 			$supernet = $arg2;
-		    } elsif ($arg2 =~ /^domain=/i) {
+		    } elsif ($arg2 ~~ /^domain=/i) {
 			$domain_arg = $arg2;
-		    } elsif ($arg2 =~ /^ptr-owner=/i) {
+		    } elsif ($arg2 ~~ /^ptr-owner=/i) {
 			$ptr_arg = $arg2;
-		    } elsif ($arg2 =~ /^db=/i) {
+		    } elsif ($arg2 ~~ /^db=/i) {
 			$alt_db_arg = $arg2;
 		    } else {
 			$alt_spcl_arg = $arg2;
 		    }
 		}
 		if ($supernet) {
-		    unless ($supernet =~ /^mode=S$/i) {
+		    unless ($supernet ~~ /^mode=S$/i) {
 			print STDERR "Improper `$supernet' argument in ",
 				     "$option option.\nThe component of ",
 				     "a valid `mode=' value must be `S'.\n";
@@ -8577,11 +8575,11 @@ sub PARSE_ARGS {
 		    #      consistent with BIND when it encounters
 		    #      "@" as a literal character in a domain name.
 		    #
-		    ($rfc_2317_domain = $domain_arg) =~ s/^domain=//i;
-		    1 while $rfc_2317_domain =~ s/\\\\/\\/g;
-		    $rfc_2317_domain =~ s/([^\\])[.]+$/$1/;
-		    $rfc_2317_domain =~ s/\\([<|>&\(\)\?;'`])/$1/g;
-		    $rfc_2317_domain =~ s/([^\\])@/$1\\@/g;
+		    ($rfc_2317_domain = $domain_arg) ~~ s/^domain=//i;
+		    1 while $rfc_2317_domain ~~ s/\\\\/\\/g;
+		    $rfc_2317_domain ~~ s/([^\\])[.]+$/$1/;
+		    $rfc_2317_domain ~~ s/\\([<|>&\(\)\?;'`])/$1/g;
+		    $rfc_2317_domain ~~ s/([^\\])@/$1\\@/g;
 		    $error = 0;
 		    if (($option eq "-n" && $cidr_size <= 24)
 			|| $option eq "-a") {
@@ -8601,7 +8599,7 @@ sub PARSE_ARGS {
 				     "(-n $argument  $domain_arg).\n",
 				     "It is not a valid domain name.\n";
 			$error = 1;
-		    } elsif ($rfc_2317_domain =~ /^(?:(?:\d+[.]){1,3})?
+		    } elsif ($rfc_2317_domain ~~ /^(?:(?:\d+[.]){1,3})?
 						  in-addr.arpa$/ix) {
 			print STDERR "Improper `domain=' argument ",
 				     "(-n $argument  $domain_arg).\n",
@@ -8609,7 +8607,7 @@ sub PARSE_ARGS {
 				     "parent networks under the ARPA zone.\n";
 			$error = 1;
 		    } elsif ($cidr_size == 32
-			     && $rfc_2317_domain =~ /^(?:\d+[.]){4}
+			     && $rfc_2317_domain ~~ /^(?:\d+[.]){4}
 						     in-addr.arpa$/ix
 			     && lc($rfc_2317_domain) ne
 				REVERSE($net) . ".in-addr.arpa") {
@@ -8665,10 +8663,10 @@ sub PARSE_ARGS {
 		    #       is sufficient for basic DNS domain name testing
 		    #       with the CHECK_NAME subroutine.
 		    #
-		    ($ptr_template = $ptr_arg) =~ s/^ptr-owner=//i;
-		    1 while $ptr_template =~ s/\\\\/\\/g;
-		    if ($ptr_template =~ /^(?:[\\]?\'){2}$/
-			|| $ptr_template =~ /^(?:[\\]?\"){2}$/) {
+		    ($ptr_template = $ptr_arg) ~~ s/^ptr-owner=//i;
+		    1 while $ptr_template ~~ s/\\\\/\\/g;
+		    if ($ptr_template ~~ /^(?:[\\]?\'){2}$/
+			|| $ptr_template ~~ /^(?:[\\]?\"){2}$/) {
 			$ptr_template = "''";
 		    }
 		    $error = 0;
@@ -8688,13 +8686,13 @@ sub PARSE_ARGS {
 			print STDERR "Improper `ptr-owner=' argument ",
 				     "(-n $argument  $ptr_arg).\nIt would ",
 				     "create an invalid DNS domain name.\n";
-			if ($ptr_template =~ /[.]$/) {
+			if ($ptr_template ~~ /[.]$/) {
 			    print STDERR "The `ptr-owner' argument must be ",
 					 "specified in domain-relative format.",
 					 "\n";
 			}
 			$error = 1;
-		    } elsif ($ptr_template =~ /(?:^|[^\\])\$[^1-4]/) {
+		    } elsif ($ptr_template ~~ /(?:^|[^\\])\$[^1-4]/) {
 			print STDERR "Improper `ptr-owner=' argument ",
 				     "(-n $argument  $ptr_arg).\nValid octet ",
 				     "substitution tokens are \$1, \$2, \$3, ",
@@ -8708,7 +8706,7 @@ sub PARSE_ARGS {
 			$error = 1;
 		    } elsif ($cidr_size == 32 && $ptr_template ne "''"
 			     && (!$rfc_2317_domain
-				 || $rfc_2317_domain =~ /^(?:\d+[.]){4}
+				 || $rfc_2317_domain ~~ /^(?:\d+[.]){4}
 							 in-addr.arpa$/ix)) {
 			$tmp1 = ($rfc_2317_domain) ? "specified" : "default";
 			$tmp2 = REVERSE($net) . ".in-addr.arpa";
@@ -8727,7 +8725,7 @@ sub PARSE_ARGS {
 				     "present for creating the owner names ",
 				     "of non-top-of-zone PTR records.\n";
 			$error = 1;
-		    } elsif ($ptr_template =~ /^\*[.]/) {
+		    } elsif ($ptr_template ~~ /^\*[.]/) {
 			if ($cidr_size == 32) {
 			    $error = "wildcard PTR record";
 			} else {
@@ -8758,14 +8756,14 @@ sub PARSE_ARGS {
 			# The Perl statements for doing this are:
 			#
 			#  $addr = "156.153.254.81";
-			#  $addr =~ s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$4.$3/;
+			#  $addr ~~ s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$4.$3/;
 			#  $addr equals "81.254".
 			#
 			# This does *not* work, however:
 			#
 			#  $addr = "156.153.254.81";
 			#  $template = "\$4.\$3";
-			#  $addr =~ s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$template/;
+			#  $addr ~~ s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$template/;
 			#  $addr equals "$4.$3".
 			#
 			# The contents of "$template" were literally substituted
@@ -8784,7 +8782,7 @@ sub PARSE_ARGS {
 			#
 			# $addr = "156.153.254.81";
 			# $template = "\$4.\$3";
-			# $addr =~ s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$template/ee;
+			# $addr ~~ s/(\d+)[.](\d+)[.](\d+)[.](\d+)/$template/ee;
 			# $addr equals "81254".
 			#
 			# What happened here was that "81" was substituted into
@@ -8808,7 +8806,7 @@ sub PARSE_ARGS {
 			#         of "''", a short-circuit mechanism prevents
 			#         it from being erroneously processed.
 			#
-			if ($ptr_template =~ /^\$\d/) {
+			if ($ptr_template ~~ /^\$\d/) {
 			    $formatted_template = "";
 			    $open_quote = 0;
 			} else {
@@ -8818,13 +8816,13 @@ sub PARSE_ARGS {
 			$last_char = "";
 			$ptr_template = "" if $ptr_template eq "''";
 			while (length($ptr_template)) {
-			    if ($ptr_template =~ /^\$(\d)/
+			    if ($ptr_template ~~ /^\$(\d)/
 				&& $last_char ne "\\") {
 				$octet_token = $1;
 				$formatted_template .= "'." if $open_quote;
 				$formatted_template .= "\$$octet_token";
 				$last_char = $octet_token;
-				$ptr_template =~ s/^..//;
+				$ptr_template ~~ s/^..//;
 				$open_quote = 0;
 			    } else {
 				unless ($open_quote) {
@@ -8848,12 +8846,12 @@ sub PARSE_ARGS {
 				    #
 				    $char = "0" . ord($char);
 				    $char = "\\$char" if $last_char ne "\\";
-				} elsif ($char =~ /^(?:@|\"|\')$/
+				} elsif ($char ~~ /^(?:@|\"|\')$/
 					 && $last_char ne "\\") {
 				    $char = "\\$char";
 				}
 				$formatted_template .= $char;
-				($last_char = $char) =~ s/.*(.)$/$1/;
+				($last_char = $char) ~~ s/.*(.)$/$1/;
 			    }
 			}
 			$formatted_template .= "'" if $open_quote;
@@ -8862,7 +8860,7 @@ sub PARSE_ARGS {
 		}
 		$error = 0;
 		if ($alt_db_arg) {
-		    ($alt_db_file = $alt_db_arg) =~ s/^db=//i;
+		    ($alt_db_file = $alt_db_arg) ~~ s/^db=//i;
 		    unless ($Domain) {
 			#
 			# The forward-mapping domain must be known in advance
@@ -8893,15 +8891,15 @@ sub PARSE_ARGS {
 			}
 			$error = 1;
 		    } else {
-			1 while $alt_db_file =~ s/\/\//\//g;
-			$alt_db_file =~ s/^[.]\///;
-			$alt_db_file =~ s/^[.]+$//;
+			1 while $alt_db_file ~~ s/\/\//\//g;
+			$alt_db_file ~~ s/^[.]\///;
+			$alt_db_file ~~ s/^[.]+$//;
 			unless ($alt_db_file) {
 			    print STDERR "Improper `$alt_db_arg' argument in ",
 					 "-n option.\nA valid filename must ",
 					 "be specified.\n";
 			    $error = 1;
-			} elsif ($alt_db_file =~ /\//) {
+			} elsif ($alt_db_file ~~ /\//) {
 			    print STDERR "Improper `$alt_db_arg' argument in ",
 					 "-n option.\nNo pathname is allowed ",
 					 "in the alternate DB file ",
@@ -8919,16 +8917,16 @@ sub PARSE_ARGS {
 		    $other_args = "  $alt_db_arg";
 		}
 		if ($alt_spcl_arg) {
-		    ($alt_spcl_file = $alt_spcl_arg) =~ s/^spcl=//i;
-		    1 while $alt_spcl_file =~ s/\/\//\//g;
-		    $alt_spcl_file =~ s/^[.]\///;
-		    $alt_spcl_file =~ s/^[.]+$//;
+		    ($alt_spcl_file = $alt_spcl_arg) ~~ s/^spcl=//i;
+		    1 while $alt_spcl_file ~~ s/\/\//\//g;
+		    $alt_spcl_file ~~ s/^[.]\///;
+		    $alt_spcl_file ~~ s/^[.]+$//;
 		    unless ($alt_spcl_file) {
 			print STDERR "Improper `$alt_spcl_arg' argument in ",
 				     "-n option.\nA valid filename must be ",
 				     "specified.\n";
 			$error = 1;
-		    } elsif ($alt_spcl_file =~ /\//) {
+		    } elsif ($alt_spcl_file ~~ /\//) {
 			print STDERR "Improper `$alt_spcl_arg' argument in ",
 				     "-n option.\nNo pathname is allowed in ",
 				     "the `spcl' \$INCLUDE file specification.",
@@ -9083,7 +9081,7 @@ sub PARSE_ARGS {
 				"$subnet_key $supernet$option $argument";
 			}
 		    } elsif ($cidr_size <= 16) {
-			($octet1 = $subnet_key) =~ s/[.].+//;
+			($octet1 = $subnet_key) ~~ s/[.].+//;
 			if (exists($allocated_octets{$subnet_key})) {
 			    $overlap = $allocated_octets{$subnet_key};
 			    if ($overlap !~ /^$subnet_key /) {
@@ -9106,11 +9104,11 @@ sub PARSE_ARGS {
 			    }
 			} elsif (exists($allocated_octets{$octet1})) {
 			    $tmp = $allocated_octets{$octet1};
-			    if ($tmp =~ /^\d+ /) {
+			    if ($tmp ~~ /^\d+ /) {
 				#
 				# An overlapping class A network exists.
 				#
-				if ($tmp =~ /^\S+ S /) {
+				if ($tmp ~~ /^\S+ S /) {
 				    #
 				    # The class A network was a supernet.
 				    #
@@ -9135,8 +9133,8 @@ sub PARSE_ARGS {
 			}
 		    } elsif ($cidr_size <= 24) {
 			$octet1 = $octets1_and_2 = $subnet_key;
-			$octet1 =~ s/[.].+//;
-			$octets1_and_2 =~ s/[.]\d+$//;
+			$octet1 ~~ s/[.].+//;
+			$octets1_and_2 ~~ s/[.]\d+$//;
 			if (exists($allocated_octets{$subnet_key})) {
 			    $overlap = $allocated_octets{$subnet_key};
 			    if (exists($Net_Ranges{"$subnet_key.X"})) {
@@ -9159,11 +9157,11 @@ sub PARSE_ARGS {
 			    }
 			} elsif (exists($allocated_octets{$octets1_and_2})) {
 			    $tmp = $allocated_octets{$octets1_and_2};
-			    if ($tmp =~ /^\d+[.]\d+ /) {
+			    if ($tmp ~~ /^\d+[.]\d+ /) {
 				#
 				# An overlapping class B network exists.
 				#
-				if ($tmp =~ /^\S+ S /) {
+				if ($tmp ~~ /^\S+ S /) {
 				    #
 				    # The class B network was a supernet.
 				    #
@@ -9175,11 +9173,11 @@ sub PARSE_ARGS {
 			    }
 			} elsif (exists($allocated_octets{$octet1})) {
 			    $tmp = $allocated_octets{$octet1};
-			    if ($tmp =~ /^\d+ /) {
+			    if ($tmp ~~ /^\d+ /) {
 				#
 				# An overlapping class A network exists.
 				#
-				if ($tmp =~ /^\S+ S /) {
+				if ($tmp ~~ /^\S+ S /) {
 				    #
 				    # The class A network was a supernet.
 				    #
@@ -9213,15 +9211,15 @@ sub PARSE_ARGS {
 			# some other class A, B, or C network.
 			#
 			$octet1 = $octets1_and_2 = $subnet_key;
-			$octet1 =~ s/[.].+//;
-			$octets1_and_2 =~ s/[.]\d+$//;
+			$octet1 ~~ s/[.].+//;
+			$octets1_and_2 ~~ s/[.]\d+$//;
 			if (exists($allocated_octets{$subnet_key})) {
 			    if (exists($Net_Ranges{$subnet_key})) {
 				#
 				# An overlapping class-C network exists.
 				#
 				$tmp = $allocated_octets{$subnet_key};
-				if ($tmp =~ /^\S+ S /) {
+				if ($tmp ~~ /^\S+ S /) {
 				    #
 				    # The class C network was a supernet.
 				    #
@@ -9233,11 +9231,11 @@ sub PARSE_ARGS {
 			    }
 			} elsif (exists($allocated_octets{$octets1_and_2})) {
 			    $tmp = $allocated_octets{$octets1_and_2};
-			    if ($tmp =~ /^\d+[.]\d+ /) {
+			    if ($tmp ~~ /^\d+[.]\d+ /) {
 				#
 				# An overlapping class B network exists.
 				#
-				if ($tmp =~ /^\S+ S /) {
+				if ($tmp ~~ /^\S+ S /) {
 				    #
 				    # The class B network was a supernet.
 				    #
@@ -9249,11 +9247,11 @@ sub PARSE_ARGS {
 			    }
 			} elsif (exists($allocated_octets{$octet1})) {
 			    $tmp = $allocated_octets{$octet1};
-			    if ($tmp =~ /^\d+ /) {
+			    if ($tmp ~~ /^\d+ /) {
 				#
 				# An overlapping class A network exists.
 				#
-				if ($tmp =~ /^\S+ S /) {
+				if ($tmp ~~ /^\S+ S /) {
 				    #
 				    # The class A network was a supernet.
 				    #
@@ -9292,7 +9290,7 @@ sub PARSE_ARGS {
 				$Net_Ranges{$sub_class_c_key} = "";
 				if (exists($allocated_octets{$class_c_key})) {
 				    $tmp = $allocated_octets{$class_c_key};
-				    if ($tmp =~ /^\S+ S /) {
+				    if ($tmp ~~ /^\S+ S /) {
 					#
 					# The parent class-C network was
 					# explicitly declared to be a supernet.
@@ -9388,7 +9386,7 @@ sub PARSE_ARGS {
 			}
 		    }
 		    if ($overlap) {
-			$overlap =~ s/^\S+ (?:S )?//;
+			$overlap ~~ s/^\S+ (?:S )?//;
 			unless ($error) {
 			    if ($Verbose && !$already_warned) {
 				print STDERR "Warning: overlapping $option ",
@@ -9492,7 +9490,7 @@ sub PARSE_ARGS {
 			    #
 			    if ($cidr_size == 32
 				&& (!$rfc_2317_domain
-				    || $rfc_2317_domain =~ /^(?:\d+[.]){4}
+				    || $rfc_2317_domain ~~ /^(?:\d+[.]){4}
 							    in-addr.arpa$/ix)) {
 				#
 				# Accommodate the special case of the
@@ -9530,7 +9528,7 @@ sub PARSE_ARGS {
 			# in the common zone file.
 			#
 			$ptr_map = "$class_c_key.xxx";
-			$ptr_map =~
+			$ptr_map ~~
 			       s/(\d+)[.](\d+)[.](\d+)[.](\S+)/$ptr_template/ee;
 			$ptr_map = lc($ptr_map);
 			if (exists($sub_class_c{$lc_zone_name}{first_supernet})
@@ -9575,10 +9573,10 @@ sub PARSE_ARGS {
 				next;
 			    }
 			    $zone_file = $rfc_2317_domain;
-			    if ($rfc_2317_domain =~ /[.]in-addr[.]arpa$/i) {
+			    if ($rfc_2317_domain ~~ /[.]in-addr[.]arpa$/i) {
 				$zone_file = REVERSE($rfc_2317_domain);
-				$zone_file =~ s/^arpa[.]in-addr[.]//i;
-				$zone_file =~ s/[.]($cidr_size)\/(.+)$/.$2\/$1/;
+				$zone_file ~~ s/^arpa[.]in-addr[.]//i;
+				$zone_file ~~ s/[.]($cidr_size)\/(.+)$/.$2\/$1/;
 			    }
 			    #
 			    # Certain non-alphanumeric characters cause
@@ -9651,11 +9649,11 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "-B") {
 	    $Boot_Dir = shift(@option_args);
-	    1 while $Boot_Dir =~ s/\/\//\//g;	# remove redundant "/" chars.
-	    $Boot_Dir =~ s/(.)\/$/$1/;		# remove trailing "/" char.
+	    1 while $Boot_Dir ~~ s/\/\//\//g;	# remove redundant "/" chars.
+	    $Boot_Dir ~~ s/(.)\/$/$1/;		# remove trailing "/" char.
 	    $Boot_Dir = $cwd if $Boot_Dir eq ".";
 	    $error = 0;
-	    unless ($Boot_Dir =~ /^\//) {
+	    unless ($Boot_Dir ~~ /^\//) {
 		print STDERR "Must use an absolute pathname ",
 			     "for the -B option.\n";
 		$error = 1;
@@ -9672,9 +9670,9 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "-b") {
 	    $Bootfile = shift(@option_args);
-	    1 while $Bootfile =~ s/\/\//\//g;
-	    $Bootfile =~ s/^[.]\///;
-	    if ($Bootfile =~ /\// && $Bootfile ne "/dev/null") {
+	    1 while $Bootfile ~~ s/\/\//\//g;
+	    $Bootfile ~~ s/^[.]\///;
+	    if ($Bootfile ~~ /\// && $Bootfile ne "/dev/null") {
 		print STDERR "Improper -b option; no pathname ",
 			     "is allowed in the boot file specification.\n",
 			     "Use the -B option to specify an alternate ",
@@ -9707,7 +9705,7 @@ sub PARSE_ARGS {
 	    $error = 0;
 	    while (@option_args) {
 		$current_arg = shift(@option_args);
-		if ($current_arg =~ /^mode=/i) {
+		if ($current_arg ~~ /^mode=/i) {
 		    print STDERR "Improper -c option; a domain name must ",
 				 "precede the `$current_arg' argument.\n";
 		    GIVE_UP() unless defined wantarray;
@@ -9724,7 +9722,7 @@ sub PARSE_ARGS {
 		    $error = 1;
 		    last;
 		}
-		unless ($current_arg =~ /[.]/) {
+		unless ($current_arg ~~ /[.]/) {
 		    unless ($Domain) {
 			print STDERR "Improper -c option; the single-label ",
 				     "non-absolute domain name of ",
@@ -9749,9 +9747,9 @@ sub PARSE_ARGS {
 		    # The domain argument is a multi-label domain name
 		    # or a single-label absolute TLD (Top-Level Domain).
 		    #
-		    ($domain_arg = $current_arg) =~ s/[.]$//;
+		    ($domain_arg = $current_arg) ~~ s/[.]$//;
 		}
-		($pattern = lc($domain_arg)) =~ s/[.]/\\./g;
+		($pattern = lc($domain_arg)) ~~ s/[.]/\\./g;
 		if (exists($c_Opt_Pat_Rel{$pattern})) {
 		    print STDERR "Improper -c option; the domain ",
 				 "`$current_arg' has\n",
@@ -9768,37 +9766,37 @@ sub PARSE_ARGS {
 
 		# See if there's an optional `mode=' argument.
 		#
-		if (@option_args && $option_args[0] =~ /^mode=/i) {
+		if (@option_args && $option_args[0] ~~ /^mode=/i) {
 		    $token = shift(@option_args);
-		    ($argument = uc($token)) =~ s/^MODE=//;
-		    $argument =~ s/[,]//g;
+		    ($argument = uc($token)) ~~ s/^MODE=//;
+		    $argument ~~ s/[,]//g;
 		    $error = 0;
-		    unless ($argument =~ /^[ADHIQS]+$/) {
+		    unless ($argument ~~ /^[ADHIQS]+$/) {
 			print STDERR "Improper `$token' argument in -c ",
 				     "option.\n",
 				     "Components of a valid `mode=' value ",
 				     "are: A, D, H, I, Q, and S.\n";
 			$error = 1;
-		    } elsif ($argument =~ /(?:H.*S|S.*H)/) {
+		    } elsif ($argument ~~ /(?:H.*S|S.*H)/) {
 			print STDERR "Improper `$token' argument in -c ",
 				     "option.\n",
 				     "'mode=' components of \"H\" and \"S\" ",
 				     "are mutually exclusive.\n";
 			$error = 1;
-		    } elsif ($argument =~ /^(?:[AHIS]*Q|Q[AHIS]*)$/) {
+		    } elsif ($argument ~~ /^(?:[AHIS]*Q|Q[AHIS]*)$/) {
 			print STDERR "Improper `$token' argument in -c ",
 				     "option.\n",
 				     "'mode=' component of \"Q\" requires ",
 				     "that \"D\" also be specified.\n";
 			$error = 1;
-		    } elsif ($argument =~ /I/ && !$Domain) {
+		    } elsif ($argument ~~ /I/ && !$Domain) {
 			print STDERR "Improper `$token' argument in -c ",
 				     "option.\n",
 				     "'mode=' component of \"I\" requires ",
 				     "that the -d option be previously ",
 				     "specified.\n";
 			$error = 1;
-		    } elsif ($argument =~ /I/ &&
+		    } elsif ($argument ~~ /I/ &&
 			     $c_Opt_Pat_Rel{$pattern} !~ /$Domain_Pattern$/io) {
 			print STDERR "Improper `-c $c_Opt_Pat_Rel{$pattern}' ",
 				     "option.\n",
@@ -9807,8 +9805,8 @@ sub PARSE_ARGS {
 				     "an intra-zone subdomain of the -d ",
 				     "option ($Domain).\n";
 			$error = 1;
-		    } elsif ($argument =~ /(?:I.*[HS]|[HS].*I)/) {
-			($tmp2 = $argument) =~ s/[ADIQ]//g;
+		    } elsif ($argument ~~ /(?:I.*[HS]|[HS].*I)/) {
+			($tmp2 = $argument) ~~ s/[ADIQ]//g;
 			if ($Verbose) {
 			    print STDERR "Improper `$token' argument in -c ",
 					 "option.\n",
@@ -9827,14 +9825,14 @@ sub PARSE_ARGS {
 		    # Update the mode-tracking hash with the actual flag(s).
 		    #
 		    $c_Opt_Spec{$pattern}{MODE} = $argument;
-		    if ($argument =~ /[HS]/) {
+		    if ($argument ~~ /[HS]/) {
 			#
 			# Add the enabled -[hide|show]-dangling-cnames option
 			# to a temporary buffer that will be added to the
 			# option/argument stream after finishing the current
 			# -c option.
 			#
-			$tmp2  = ($argument =~ /H/) ? "-hide" : "-show";
+			$tmp2  = ($argument ~~ /H/) ? "-hide" : "-show";
 			$tmp2 .= "-dangling-cnames";
 			push(@insertion_args, $tmp2, $c_Opt_Pat_Rel{$pattern});
 		    }
@@ -9846,9 +9844,9 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "+C") {
 	    $Conf_Prefile = shift(@option_args);
-	    1 while $Conf_Prefile =~ s/\/\//\//g;
-	    $Conf_Prefile =~ s/^[.]\///;
-	    if ($Conf_Prefile =~ /\//) {
+	    1 while $Conf_Prefile ~~ s/\/\//\//g;
+	    $Conf_Prefile ~~ s/^[.]\///;
+	    if ($Conf_Prefile ~~ /\//) {
 		print STDERR "Improper +C option; no pathname is allowed ",
 			     "in the `conf' prepend file spec.\n",
 			     "Use the -B option to specify an alternate ",
@@ -9859,11 +9857,11 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "+c") {
 	    $argument = shift(@option_args);
-	    unless ($argument =~ /^mode=/i) {
+	    unless ($argument ~~ /^mode=/i) {
 		$Conffile = $argument;
-		1 while $Conffile =~ s/\/\//\//g;
-		$Conffile =~ s/^[.]\///;
-		if ($Conffile =~ /\// && $Conffile ne "/dev/null") {
+		1 while $Conffile ~~ s/\/\//\//g;
+		$Conffile ~~ s/^[.]\///;
+		if ($Conffile ~~ /\// && $Conffile ne "/dev/null") {
 		    print STDERR "Improper +c option; no pathname is allowed ",
 				 "in the conf file specification.\n",
 				 "Use the -B option to specify an alternate ",
@@ -9876,19 +9874,19 @@ sub PARSE_ARGS {
 		}
 	    } else {
 		$token = $argument;
-		($argument = uc($token)) =~ s/^MODE=//;
+		($argument = uc($token)) ~~ s/^MODE=//;
 	    }
 	    #
 	    # If necessary, see if there's an optional `mode=' argument.
 	    #
 	    unless ($argument) {
-		if (@option_args && $option_args[0] =~ /^mode=/i) {
+		if (@option_args && $option_args[0] ~~ /^mode=/i) {
 		    $token = shift(@option_args);
-		    ($argument = uc($token)) =~ s/^MODE=//;
+		    ($argument = uc($token)) ~~ s/^MODE=//;
 		}
 	    }
 	    if ($argument) {
-		unless ($argument =~ /^[MS]$/) {
+		unless ($argument ~~ /^[MS]$/) {
 		    print STDERR "Improper `$token' argument in +c option.\n",
 				 "The component of a valid `mode=' value is ",
 				 "either `M' or `S'.\n";
@@ -9907,7 +9905,7 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "-d") {
 	    $argument = shift(@option_args);
-	    if ($argument =~ /^(?:db|spcl|mode)=/i) {
+	    if ($argument ~~ /^(?:db|spcl|mode)=/i) {
 		print STDERR "Improper -d option; a domain name must ",
 			     "precede any `db=|spcl=|mode=' arguments.\n";
 		GIVE_UP() unless defined wantarray;
@@ -9923,7 +9921,7 @@ sub PARSE_ARGS {
 		@option_args = ();
 		next;
 	    }
-	    ($Domain = $argument) =~ s/[.]$//;
+	    ($Domain = $argument) ~~ s/[.]$//;
 	    if (length($Domain) == 0 || CHECK_NAME($Domain, 'SOA')) {
 		print STDERR "Improper -d option; the domain name ",
 			     "`$argument' is invalid.\n";
@@ -9931,8 +9929,8 @@ sub PARSE_ARGS {
 		$message_count++;
 		next;
 	    }
-	    ($Domain_Pattern = ".$Domain") =~ s/[.]/\\./g;# for stripping domain
-	    ($Domainfile = $Domain) =~ s/[.].*//;
+	    ($Domain_Pattern = ".$Domain") ~~ s/[.]/\\./g;# for stripping domain
+	    ($Domainfile = $Domain) ~~ s/[.].*//;
 	    $Domainfile  = "db.$Domainfile";
 	    #
 	    # NOTE: Defer the default initialization of "$Special_File" until
@@ -9944,17 +9942,17 @@ sub PARSE_ARGS {
 	    #
 	    while (@option_args) {
 		$argument = shift(@option_args);
-		unless ($argument =~ /^(?:db|mode|spcl)=/i) {
+		unless ($argument ~~ /^(?:db|mode|spcl)=/i) {
 		    print STDERR "Improper -d option; unknown argument ",
 				 "($argument).\n";
 		    GIVE_UP() unless defined wantarray;
 		    $message_count++;
 		    last;
-		} elsif ($argument =~ /^db=/i) {
-		    ($Domainfile = $argument) =~ s/^db=//i;
-		    1 while $Domainfile =~ s/\/\//\//g;
-		    $Domainfile =~ s/^[.]\///;
-		    if ($Domainfile =~ /\//) {
+		} elsif ($argument ~~ /^db=/i) {
+		    ($Domainfile = $argument) ~~ s/^db=//i;
+		    1 while $Domainfile ~~ s/\/\//\//g;
+		    $Domainfile ~~ s/^[.]\///;
+		    if ($Domainfile ~~ /\//) {
 			print STDERR "Improper `$argument' argument in -d ",
 				     "option.\n",
 				     "No pathname is allowed in the alternate ",
@@ -9965,11 +9963,11 @@ sub PARSE_ARGS {
 			$message_count++;
 			last;
 		    }
-		} elsif ($argument =~ /^spcl=/i) {
-		    ($Special_File = $argument) =~ s/^spcl=//i;
-		    1 while $Special_File =~ s/\/\//\//g;
-		    $Special_File =~ s/^[.]\///;
-		    if ($Special_File =~ /\//) {
+		} elsif ($argument ~~ /^spcl=/i) {
+		    ($Special_File = $argument) ~~ s/^spcl=//i;
+		    1 while $Special_File ~~ s/\/\//\//g;
+		    $Special_File ~~ s/^[.]\///;
+		    if ($Special_File ~~ /\//) {
 			print STDERR "Improper `$argument' argument in -d ",
 				     "option.\n",
 				     "No pathname is allowed in the `spcl' ",
@@ -9984,11 +9982,11 @@ sub PARSE_ARGS {
 			     "-d $Domain ... spcl=$Special_File");
 		    }
 		} else {
-		    if ($argument =~ /^mode=D$/i) {
+		    if ($argument ~~ /^mode=D$/i) {
 			$UseDefaultDomain = 1;
-		    } elsif ($argument =~ /^mode=Q$/i) {
+		    } elsif ($argument ~~ /^mode=Q$/i) {
 			$ReportNonMatchingDomains = 0;
-		    } elsif ($argument =~ /^mode=(?:DQ|QD)$/i) {
+		    } elsif ($argument ~~ /^mode=(?:DQ|QD)$/i) {
 			print STDERR "Improper `$argument' argument in -d ",
 				     "option.\n",
 				     "The 'mode=' components \"D\" and \"Q\" ",
@@ -10034,7 +10032,7 @@ sub PARSE_ARGS {
 		    $message_count++;
 		    last;
 		}
-		unless ($current_arg =~ /[.]/) {
+		unless ($current_arg ~~ /[.]/) {
 		    unless ($Domain) {
 			print STDERR "Improper -e option; the single-label ",
 				     "non-absolute domain name of ",
@@ -10058,7 +10056,7 @@ sub PARSE_ARGS {
 		    # The domain argument is a multi-label domain name
 		    # or a single-label absolute TLD (Top-Level Domain).
 		    #
-		    ($domain_arg = lc($current_arg)) =~ s/[.]$//;
+		    ($domain_arg = lc($current_arg)) ~~ s/[.]$//;
 		}
 		if (exists($e_opt_domain{$domain_arg})) {
 		    print STDERR "Improper -e option; the domain ",
@@ -10069,7 +10067,7 @@ sub PARSE_ARGS {
 		    $message_count++;
 		    last;
 		}
-		($pattern = $domain_arg) =~ s/[.]/\\./g;
+		($pattern = $domain_arg) ~~ s/[.]/\\./g;
 		push(@e_Opt_Patterns, $pattern);
 		$e_opt_domain{$domain_arg} = 1;
 	    }
@@ -10149,7 +10147,7 @@ sub PARSE_ARGS {
 		$comment = 0;
 		unless (/[\\"']/) {
 		    foreach $token (split(' ')) {
-			if ($token =~ /^[#;]/) {
+			if ($token ~~ /^[#;]/) {
 			    $comment = 1;
 			    last;
 			}
@@ -10188,8 +10186,8 @@ sub PARSE_ARGS {
 			} elsif ($char eq '"') {
 			    $open_quote = 2;
 			    next;
-			} elsif ($char =~ /\s/) {
-			    if ($token =~ /[#;]/) {
+			} elsif ($char ~~ /\s/) {
+			    if ($token ~~ /[#;]/) {
 				$comment = 1;
 				last;
 			    } else {
@@ -10253,49 +10251,49 @@ sub PARSE_ARGS {
 	    $DefAction = "Skipping";
 	    while (@option_args) {
 		$argument = shift(@option_args);
-		if ($argument =~ /^(?:no|false|off|none|disable|ignore)$/i) {
+		if ($argument ~~ /^(?:no|false|off|none|disable|ignore)$/i) {
 		    $Check_Level = "ignore";
 		    $RFC_952 = 0;
 		    $RFC_1123 = 0;
 		    $Audit = 0;
 		    $DefAction = "Warning";
-		} elsif ($argument =~ /^warn$/i) {
+		} elsif ($argument ~~ /^warn$/i) {
 		    $Check_Level = "warn";
 		    $RFC_952 = 0;
 		    $RFC_1123 = 1;
 		    $Audit = 0;
 		    $DefAction = "Warning";
-		} elsif ($argument =~ /^audit\-only$/i) {
+		} elsif ($argument ~~ /^audit\-only$/i) {
 		    $Check_Level = "audit-only";
 		    $RFC_952 = 0;
 		    $RFC_1123 = 0;
 		    $Audit = 1;
 		    $DefAction = "Warning";
-		} elsif ($argument =~ /^audit$/i) {
+		} elsif ($argument ~~ /^audit$/i) {
 		    $Check_Level = "audit";
 		    $RFC_952 = 0;
 		    $RFC_1123 = 1;
 		    $Audit = 1;
 		    $DefAction = "Warning";
-		} elsif ($argument =~ /^warn\-strict$/i) {
+		} elsif ($argument ~~ /^warn\-strict$/i) {
 		    $Check_Level = "warn-strict";
 		    $RFC_952 = 1;
 		    $RFC_1123 = 1;
 		    $Audit = 1;
 		    $DefAction = "Warning";
-		} elsif ($argument =~ /^(?:yes|true|on|check|enable|fail)$/i) {
+		} elsif ($argument ~~ /^(?:yes|true|on|check|enable|fail)$/i) {
 		    $Check_Level = "fail";
 		    $RFC_952 = 0;
 		    $RFC_1123 = 1;
 		    $Audit = 1;
 		    $DefAction = "Skipping";
-		} elsif ($argument =~ /^strict$/i) {
+		} elsif ($argument ~~ /^strict$/i) {
 		    $Check_Level = "strict";
 		    $RFC_952 = 1;
 		    $RFC_1123 = 1;
 		    $Audit = 1;
 		    $DefAction = "Skipping";
-		} elsif ($argument =~ /^rfc-?2782$/i) {
+		} elsif ($argument ~~ /^rfc-?2782$/i) {
 		    $RFC_2782 = 1;
 		} else {
 		    if ($Verbose) {
@@ -10354,8 +10352,8 @@ sub PARSE_ARGS {
 	    $CustomLogging = 1;
 	    $argument = join(" ", @option_args);
 	    if ($argument) {
-		$argument =~ s/ +$//;
-		$argument .= ";" unless $argument =~ /;$/;
+		$argument ~~ s/ +$//;
+		$argument .= ";" unless $argument ~~ /;$/;
 		push(@Conf_Logging, $argument);
 		@option_args = ();
 	    }
@@ -10367,11 +10365,11 @@ sub PARSE_ARGS {
 	    $Do_MX = "";
 	    while (@option_args) {
 		$argument = shift(@option_args);
-		if ($argument =~ /^no[-_]?mx$/i) {
+		if ($argument ~~ /^no[-_]?mx$/i) {
 		    $Do_MX = "[no mx]";
-		} elsif ($argument =~ /^smtp$/i) {
+		} elsif ($argument ~~ /^smtp$/i) {
 		    $Do_MX = "[smtp]";
-		} elsif ($argument =~ /^no[-_]?smtp$/i) {
+		} elsif ($argument ~~ /^no[-_]?smtp$/i) {
 		    $Do_MX = "[no smtp]";
 		} else {
 		    if ($Verbose) {
@@ -10387,7 +10385,7 @@ sub PARSE_ARGS {
 		$argument = shift(@option_args);
 		($preference, $domain_arg) = split(/:/, $argument, 2);
 		$error = 0;
-		unless ($preference && $preference =~ /^\d+$/
+		unless ($preference && $preference ~~ /^\d+$/
 			&& $preference <= 65535) {
 		    print STDERR "Improper -m option; invalid MX preference ",
 				 "value ($preference).\n";
@@ -10395,7 +10393,7 @@ sub PARSE_ARGS {
 		} elsif (!$domain_arg) {
 		    print STDERR "Improper -m option; missing MX hostname.\n";
 		    $error = 1;
-		} elsif ($domain_arg =~ /^\d+[.]\d+[.]\d+[.]\d+$/) {
+		} elsif ($domain_arg ~~ /^\d+[.]\d+[.]\d+[.]\d+$/) {
 		    print STDERR "Uh, the -m option requires a domain name, ",
 				 "not an IP address.\n";
 		    $error = 1;
@@ -10411,11 +10409,11 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "+m") {
 	    $argument = join("", @option_args);
-	    $argument =~ s/^mode=//i;
-	    $argument =~ s/[,]//g;
+	    $argument ~~ s/^mode=//i;
+	    $argument ~~ s/[,]//g;
 	    $argument = "D" unless $argument;
 	    @option_args = ();
-	    unless ($argument =~ /^(?:D|C|P|CP|PC)$/i) {
+	    unless ($argument ~~ /^(?:D|C|P|CP|PC)$/i) {
 		print STDERR "Improper `$argument' argument in +m option.\n",
 			     "Valid argument must be one of: D, C, P, or CP.\n";
 		GIVE_UP() unless defined wantarray;
@@ -10433,8 +10431,8 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "-N") {
 	    $argument = shift(@option_args);
-	    if ($argument =~ /^\//) {
-		($cidr_size = $argument) =~ s/^\///;
+	    if ($argument ~~ /^\//) {
+		($cidr_size = $argument) ~~ s/^\///;
 		$Defsubnetmask = undef;
 	    } else {
 		$cidr_size = undef;
@@ -10459,8 +10457,8 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "-o") {
 	    $argument = shift(@option_args);
-	    unless ("$argument:" =~ /^(?:(?:\d+|(?:\d+[wdhms])+)?:){1,5}$/i ||
-		    $argument =~ /^:{3,4}$/ || $argument !~ /^(?:[+-].*)?$/) {
+	    unless ("$argument:" ~~ /^(?:(?:\d+|(?:\d+[wdhms])+)?:){1,5}$/i ||
+		    $argument ~~ /^:{3,4}$/ || $argument !~ /^(?:[+-].*)?$/) {
 		print STDERR "Improper -o option `$argument'.\n";
 		GIVE_UP() unless defined wantarray;
 		$message_count++;
@@ -10532,7 +10530,7 @@ sub PARSE_ARGS {
 		    $message_count++;
 		}
 		if ($RFC_2308 && ($Ttl || $Master_Ttl)) {
-		    if ($RFC_2308 != 2 && $argument =~ /^(?:[^:]*:){3}[^:]*$/) {
+		    if ($RFC_2308 != 2 && $argument ~~ /^(?:[^:]*:){3}[^:]*$/) {
 			if ($Verbose) {
 			    print STDERR "(Ignoring previous \$TTL/Negative ",
 					 "cache value(s).)\n";
@@ -10551,7 +10549,7 @@ sub PARSE_ARGS {
 		}
 	    }
 	    if ($RFC_2308 != 2) {
-		$RFC_2308 = ($argument =~ /^(?:[^:]*:){3}[^:]*$/) ? 0 : 1;
+		$RFC_2308 = ($argument ~~ /^(?:[^:]*:){3}[^:]*$/) ? 0 : 1;
 	    }
 	    ($Refresh, $Retry, $Expire, $Ttl,
 					$Master_Ttl) = split(/:/, $argument);
@@ -10565,8 +10563,8 @@ sub PARSE_ARGS {
 	    $argument = join(" ", @option_args);
 	    $CustomOptions = 1;
 	    if ($argument) {
-		$argument =~ s/ +$//;
-		$argument .= ";" unless $argument =~ /[;{]$/;
+		$argument ~~ s/ +$//;
+		$argument .= ";" unless $argument ~~ /[;{]$/;
 		push(@Conf_Opts, $argument);
 		@option_args = ();
 	    } else {
@@ -10575,19 +10573,19 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "+om") {
 	    $argument = join(" ", @option_args);
-	    $argument =~ s/ +$//;
-	    $argument .= ";" unless $argument =~ /[;{]$/;
+	    $argument ~~ s/ +$//;
+	    $argument .= ";" unless $argument ~~ /[;{]$/;
 	    @option_args = ();
-	    if ($last_n_or_d =~ /^-d (.+)/) {
+	    if ($last_n_or_d ~~ /^-d (.+)/) {
 		$Master_Zone_Opt{$1} .= "$argument\n";
-	    } elsif ($last_n_or_d =~ /^-n /) {
-		($tmp1 = $last_n_or_d) =~ s/^-n //;
+	    } elsif ($last_n_or_d ~~ /^-n /) {
+		($tmp1 = $last_n_or_d) ~~ s/^-n //;
 		foreach $tmp2 (split(' ', $tmp1)) {
 		    $Master_Zone_Opt{$tmp2} .= "$argument\n";
 		}
 	    } elsif ($last_n_or_d eq "-n") {
 		for ($j = ($#option_history - 1); $j > 0; $j--) {
-		    next unless $option_history[$j] =~ /^(?:[+](?:om|os))|-S$/;
+		    next unless $option_history[$j] ~~ /^(?:[+](?:om|os))|-S$/;
 		    $tmp1 = $option_history[$j];
 		    $tmp2 = $j + 1;
 		    last;
@@ -10608,19 +10606,19 @@ sub PARSE_ARGS {
 
 	} elsif ($option eq "+os") {
 	    $argument = join(" ", @option_args);
-	    $argument =~ s/ +$//;
-	    $argument .= ";" unless $argument =~ /[;{]$/;
+	    $argument ~~ s/ +$//;
+	    $argument .= ";" unless $argument ~~ /[;{]$/;
 	    @option_args = ();
-	    if ($last_n_or_d =~ /^-d (.+)/) {
+	    if ($last_n_or_d ~~ /^-d (.+)/) {
 		$Slave_Zone_Opt{$1} .= "$argument\n";
-	    } elsif ($last_n_or_d =~ /^-n /) {
-		($tmp1 = $last_n_or_d) =~ s/^-n //;
+	    } elsif ($last_n_or_d ~~ /^-n /) {
+		($tmp1 = $last_n_or_d) ~~ s/^-n //;
 		foreach $tmp2 (split(' ', $tmp1)) {
 		    $Slave_Zone_Opt{$tmp2} .= "$argument\n";
 		}
 	    } elsif ($last_n_or_d eq "-n") {
 		for ($j = ($#option_history - 1); $j > 0; $j--) {
-		    next unless $option_history[$j] =~ /^(?:[+](?:om|os))|-S$/;
+		    next unless $option_history[$j] ~~ /^(?:[+](?:om|os))|-S$/;
 		    $tmp1 = $option_history[$j];
 		    $tmp2 = $j + 1;
 		    last;
@@ -10661,7 +10659,7 @@ sub PARSE_ARGS {
 	    #
 	    while (@option_args) {
 		$current_arg = shift(@option_args);
-		if ($current_arg =~ /^mode=/i) {
+		if ($current_arg ~~ /^mode=/i) {
 		    print STDERR "Improper -p option; a domain name must ",
 				 "precede the `$current_arg' argument.\n";
 		    GIVE_UP() unless defined wantarray;
@@ -10676,7 +10674,7 @@ sub PARSE_ARGS {
 		    $message_count++;
 		    last;
 		}
-		unless ($current_arg =~ /[.]/) {
+		unless ($current_arg ~~ /[.]/) {
 		    unless ($Domain) {
 			print STDERR "Improper -p option; the single-label ",
 				     "non-absolute domain name of ",
@@ -10700,9 +10698,9 @@ sub PARSE_ARGS {
 		    # The domain argument is a multi-label domain name
 		    # or a single-label absolute TLD (Top-Level Domain).
 		    #
-		    ($domain_arg = $current_arg) =~ s/[.]$//;
+		    ($domain_arg = $current_arg) ~~ s/[.]$//;
 		}
-		($pattern = lc($domain_arg)) =~ s/[.]/\\./g;
+		($pattern = lc($domain_arg)) ~~ s/[.]/\\./g;
 		if (exists($PTR_Pat_Rel{$pattern})) {
 		    print STDERR "Improper -p option; the domain ",
 				 "$current_arg' has\n",
@@ -10719,16 +10717,16 @@ sub PARSE_ARGS {
 
 		# See if there's an optional `mode=' argument.
 		#
-		if (@option_args && $option_args[0] =~ /^mode=/i) {
+		if (@option_args && $option_args[0] ~~ /^mode=/i) {
 		    $token = shift(@option_args);
-		    ($argument = uc($token)) =~ s/^MODE=//;
-		    $argument =~ s/[,]//g;
+		    ($argument = uc($token)) ~~ s/^MODE=//;
+		    $argument ~~ s/[,]//g;
 		    #
 		    # Accept "D" as a valid flag for consistency with the +m
 		    # option and the "[mh= ]" comment flag in the host file.
 		    # Silently ignore it, however.
 		    #
-		    unless ($argument =~ /^(?:A|D|AD|DA|P)$/) {
+		    unless ($argument ~~ /^(?:A|D|AD|DA|P)$/) {
 			print STDERR "Improper `$token' argument in -p option.",
 				     "\n",
 				     "The component of a valid `mode=' value ",
@@ -10737,7 +10735,7 @@ sub PARSE_ARGS {
 			$message_count++;
 			last;
 		    }
-		    $argument =~ s/D//;
+		    $argument ~~ s/D//;
 		    #
 		    # Update the mode-tracking hash with the actual flag(s).
 		    #
@@ -10763,7 +10761,7 @@ sub PARSE_ARGS {
 		$error = 1;
 	    } elsif ($last_n_or_d eq "-n") {
 		for ($j = ($#option_history - 1); $j > 0; $j--) {
-		    next unless $option_history[$j] =~ /^(?:[+](?:om|os))|-S$/;
+		    next unless $option_history[$j] ~~ /^(?:[+](?:om|os))|-S$/;
 		    $tmp1 = $option_history[$j];
 		    $tmp2 = $j + 1;
 		    last;
@@ -10785,16 +10783,16 @@ sub PARSE_ARGS {
 	    }
 	    while (@option_args) {
 		$argument = shift(@option_args);
-		if ($argument =~ /$IPv4_pattern/o) {
+		if ($argument ~~ /$IPv4_pattern/o) {
 		    print STDERR "Uh, the -S option requires a domain name, ",
 				 "not an IP address.\n";
 		    GIVE_UP() unless defined wantarray;
 		    $message_count++;
 		    last;
-		} elsif ($last_n_or_d =~ /^-d (.+)/) {
+		} elsif ($last_n_or_d ~~ /^-d (.+)/) {
 		    $Partial_Servers{$1} .= " $argument";
-		} elsif ($last_n_or_d =~ /^-n /) {
-		    ($tmp1 = $last_n_or_d) =~ s/^-n //;
+		} elsif ($last_n_or_d ~~ /^-n /) {
+		    ($tmp1 = $last_n_or_d) ~~ s/^-n //;
 		    foreach $tmp2 (split(' ', $tmp1)) {
 			$Partial_Servers{$tmp2} .= " $argument";
 		    }
@@ -10805,9 +10803,9 @@ sub PARSE_ARGS {
 	    $argument = "";
 	    if (@option_args) {
 		$argument = shift(@option_args);
-		if ($argument =~ /^(?:no|false|off|none|disable)$/i) {
+		if ($argument ~~ /^(?:no|false|off|none|disable)$/i) {
 		    $default_supernetting = 0;
-		} elsif ($argument =~ /^(?:yes|true|on|enable)$/i) {
+		} elsif ($argument ~~ /^(?:yes|true|on|enable)$/i) {
 		    $default_supernetting = 1;
 		} else {
 		    if ($Verbose) {
@@ -10831,7 +10829,7 @@ sub PARSE_ARGS {
 	} elsif ($option eq "-s") {
 	    while (@option_args) {
 		$argument = shift(@option_args);
-		if ($argument =~ /$IPv4_pattern/o) {
+		if ($argument ~~ /$IPv4_pattern/o) {
 		    print STDERR "Uh, the -s option requires a domain name, ",
 				 "not an IP address.\n";
 		    GIVE_UP() unless defined wantarray;
@@ -10845,10 +10843,10 @@ sub PARSE_ARGS {
 	} elsif ($option eq "-T") {
 	    while (@option_args) {
 		$argument = shift(@option_args);
-		if ($argument =~ /^mode=M/i) {
+		if ($argument ~~ /^mode=M/i) {
 		    $Do_Zone_Apex_MX = 1;
-		} elsif ($argument =~ /^ALIAS=/i) {
-		    ($domain_arg = $argument) =~ s/^ALIAS=//i;
+		} elsif ($argument ~~ /^ALIAS=/i) {
+		    ($domain_arg = $argument) ~~ s/^ALIAS=//i;
 		    unless (length($domain_arg)) {
 			print STDERR "Improper -T option; the `ALIAS=' ",
 				     "keyword requires a domain name ",
@@ -10874,8 +10872,8 @@ sub PARSE_ARGS {
 		    } else {
 			$Apex_Aliases{lc($domain_arg)} = "$domain_arg $ttl";
 		    }
-		} elsif ($argument =~ /^RR=/i) {
-		    ($token = $argument) =~ s/^RR=//i;
+		} elsif ($argument ~~ /^RR=/i) {
+		    ($token = $argument) ~~ s/^RR=//i;
 		    unless (length($token)) {
 			print STDERR "Improper -T option; the `RR=' keyword ",
 				     "requires a DNS record as an argument.\n";
@@ -10884,18 +10882,18 @@ sub PARSE_ARGS {
 			last;
 		    }
 		    $error = "";
-		    if ($token =~ /^(.*?\s)($RRtypes)\s+(.+)/io) {
+		    if ($token ~~ /^(.*?\s)($RRtypes)\s+(.+)/io) {
 			$tmp1 = $1;
 			$rrtype = uc($2);
 			$rdata = $3;
-			$tmp1 =~ s/(?:\s+IN)?\s+$//i;	# strip `IN' if present
+			$tmp1 ~~ s/(?:\s+IN)?\s+$//i;	# strip `IN' if present
 			$domain_arg = '@';		# set to default value
-			if ($tmp1 =~ /^\S/) {		# $ttl *may* be null
+			if ($tmp1 ~~ /^\S/) {		# $ttl *may* be null
 			    ($domain_arg, $ttl) = split(' ', $tmp1, 2);
 			    $ttl = "" unless defined($ttl);
-			    1 while $domain_arg =~ s/\\\\/\\/g;
-			} elsif ($tmp1 =~ /\S/) {	# $ttl is *not* null
-			    ($ttl = $tmp1) =~ s/\s+//g;
+			    1 while $domain_arg ~~ s/\\\\/\\/g;
+			} elsif ($tmp1 ~~ /\S/) {	# $ttl is *not* null
+			    ($ttl = $tmp1) ~~ s/\s+//g;
 			} else {			# $ttl *is* null
 			    $ttl = "";
 			}
@@ -10921,14 +10919,14 @@ sub PARSE_ARGS {
 		    }
 		    if ($error) {
 			print STDERR "Improper -T option; $error\n";
-			$argument =~ s/=.*//;
+			$argument ~~ s/=.*//;
 			print STDERR "> $argument='$token'\n";
 			GIVE_UP() unless defined wantarray;
 			$message_count++;
 			last;
 		    }
 		    $continuation_line = $open_paren_count = $open_quote = 0;
-		    while ($continuation_line || $rdata =~/["()]/) {
+		    while ($continuation_line || $rdata ~~/["()]/) {
 			#
 			# Accommodate the possibility that the -T option
 			# may specify a multi-line resource record, e.g.,
@@ -11101,8 +11099,8 @@ sub PARSE_ARGS {
 	} elsif ($option eq "-t") {
 	    $Do_TXT = 1;
 	    $argument = join("", @option_args);
-	    $argument =~ s/^mode=//i;
-	    $argument =~ s/[,]//g;
+	    $argument ~~ s/^mode=//i;
+	    $argument ~~ s/[,]//g;
 	    unless ($argument) {
 		if (($Quoted_Txt_Only || $Quoted_Txt_Preferred) && $Verbose) {
 		    print STDERR "Hmm, default -t option cancels previously ",
@@ -11111,7 +11109,7 @@ sub PARSE_ARGS {
 		}
 		$Quoted_Txt_Only = $Quoted_Txt_Preferred = 0;
 	    } else {
-		unless ($argument =~ /^(?:O|P|OP|PO)$/i) {
+		unless ($argument ~~ /^(?:O|P|OP|PO)$/i) {
 		    print STDERR "Improper `$argument' argument in -t option.",
 				 "\n",
 				 "Valid argument must be one of: O, P, or OP.",
@@ -11126,15 +11124,15 @@ sub PARSE_ARGS {
 				     "previous -t option.\n";
 			$message_count++;
 		    }
-		    $Quoted_Txt_Only      = 1 if $argument =~ /[O]/i;
-		    $Quoted_Txt_Preferred = 1 if $argument =~ /[P]/i;
+		    $Quoted_Txt_Only      = 1 if $argument ~~ /[O]/i;
+		    $Quoted_Txt_Preferred = 1 if $argument ~~ /[P]/i;
 		}
 		@option_args = ();
 	    }
 
 	} elsif ($option eq "+t") {
 	    $argument = shift(@option_args);
-	    unless ($argument =~ /^(?:\d+|(?:\d+[wdhms])+)$/i) {
+	    unless ($argument ~~ /^(?:\d+|(?:\d+[wdhms])+)$/i) {
 		print STDERR "Improper +t option `$argument' ",
 			     "for DEFAULT-TTL.\n";
 		GIVE_UP() unless defined wantarray;
@@ -11145,7 +11143,7 @@ sub PARSE_ARGS {
 	    }
 	    if (@option_args) {
 		$argument = shift(@option_args);
-		unless ($argument =~ /^(?:\d+|(?:\d+[wdhms])+)$/i) {
+		unless ($argument ~~ /^(?:\d+|(?:\d+[wdhms])+)$/i) {
 		    print STDERR "Improper +t option `$argument' ",
 				 "for MINIMUM-TTL.\n";
 		    GIVE_UP() unless defined wantarray;
@@ -11197,7 +11195,7 @@ sub PARSE_ARGS {
 		# make sure that there is only one such dot.
 		#
 		$argument .= ".";
-		$argument =~ s/[.]+$/./;
+		$argument ~~ s/[.]+$/./;
 		if (length($argument) >= 1 && CHECK_NAME($argument, 'SOA')) {
 		    print STDERR "Improper -V option; the domain name ",
 				 "`$argument' is invalid.\n";
@@ -11220,7 +11218,7 @@ sub PARSE_ARGS {
 		}
 	    }
 
-	} elsif ($option =~ /^-v([:=](.*))?$/) {
+	} elsif ($option ~~ /^-v([:=](.*))?$/) {
 	    #
 	    # This option has two functions.  The documented one is to
 	    # report the version number of `h2n'.  The undocumented
@@ -11253,11 +11251,11 @@ sub PARSE_ARGS {
 	    #       by specifying the `mode=O' argument.
 	    #
 	    $DB_Dir = shift(@option_args);
-	    1 while $DB_Dir =~ s/\/\//\//g;
-	    $DB_Dir =~ s/(.)\/$/$1/;
+	    1 while $DB_Dir ~~ s/\/\//\//g;
+	    $DB_Dir ~~ s/(.)\/$/$1/;
 	    $DB_Dir = $cwd if $DB_Dir eq ".";
 	    $error = 0;
-	    unless ($DB_Dir =~ /^\//) {
+	    unless ($DB_Dir ~~ /^\//) {
 		print STDERR "Must use an absolute pathname ",
 			     "for the -W option.\n";
 		$error = 1;
@@ -11273,13 +11271,13 @@ sub PARSE_ARGS {
 		#
 		if (@option_args) {
 		    $token = shift(@option_args);
-		    unless ($token =~ /^mode=/i) {
+		    unless ($token ~~ /^mode=/i) {
 			print STDERR "Improper `$token' argument in -W option.",
 				     "\n",
 				     "Expected to see `MODE=O'.\n";
 			$error = 1;
 		    } else {
-			($argument = uc($token)) =~ s/^MODE=//;
+			($argument = uc($token)) ~~ s/^MODE=//;
 			unless ($argument eq "O") {
 			    print STDERR "Improper `$token' argument in ",
 					 "-W option.\n",
@@ -11315,13 +11313,13 @@ sub PARSE_ARGS {
 		# See if there's an optional `mode=' argument.
 		#
 		$token = shift(@option_args);
-		unless ($token =~ /^mode=/i) {
+		unless ($token ~~ /^mode=/i) {
 		    print STDERR "Improper `$token' argument in -y option.\n",
 				 "Expected to see `MODE=[D|M]'.\n";
 		    $error = 1;
 		} else {
-		    ($argument = uc($token)) =~ s/^MODE=//;
-		    unless ($argument =~ /^[DM]$/) {
+		    ($argument = uc($token)) ~~ s/^MODE=//;
+		    unless ($argument ~~ /^[DM]$/) {
 			print STDERR "Improper `$token' argument in -y option.",
 				     "\n",
 				     "The component of a valid `mode=' value ",
@@ -11333,7 +11331,7 @@ sub PARSE_ARGS {
 	    if ($error) {
 		GIVE_UP() unless defined wantarray;
 		$message_count++;
-	    } elsif ($argument =~ /^[DM]$/) {
+	    } elsif ($argument ~~ /^[DM]$/) {
 		@ctime = localtime(time);
 		$New_Serial = (($ctime[5] + 1900) * 1000000)
 			    + (($ctime[4] + 1) * 10000);
@@ -11406,7 +11404,7 @@ sub PARSE_ARGS {
 	    }
 	    $Recursive_Verify = ($option_modifier eq 'no') ? 0 : 1;
 	    if ($Recursive_Verify && defined($argument)) {
-		unless ($argument =~ /^\d+$/) {
+		unless ($argument ~~ /^\d+$/) {
 		    print STDERR "Improper $original_option option; limit ",
 				 "argument must be a non-negative integer.\n";
 		    GIVE_UP() unless defined wantarray;
@@ -11436,7 +11434,7 @@ sub PARSE_ARGS {
 	    # Bypasses the check to see if a delegation is made to
 	    # at least two name servers as suggested by RFC-1034.
 	    #
-	    $Show_Single_Delegations = ($option_modifier =~ /(?:no-show|hide)/)
+	    $Show_Single_Delegations = ($option_modifier ~~ /(?:no-show|hide)/)
 				     ? 0 : 1;
 
 	} elsif ($option eq 'query-external-domains') {
@@ -11464,7 +11462,7 @@ sub PARSE_ARGS {
 	    # in order to limit the display to only matching domains
 	    # (show/no-hide) or to exclude their display (no-show/hide).
 	    #
-	    $option_modifier = ($option_modifier =~ /(?:no-show|hide)/) ? 0 : 1;
+	    $option_modifier = ($option_modifier ~~ /(?:no-show|hide)/) ? 0 : 1;
 	    $flag = scalar(@option_args);
 	    while (@option_args) {
 		$argument = shift(@option_args);
@@ -11475,8 +11473,8 @@ sub PARSE_ARGS {
 		    $message_count++;
 		    last;
 		}
-		($tmp = lc($argument)) =~ s/[.]$//;
-		$tmp =~ s/[.]/\\./g;
+		($tmp = lc($argument)) ~~ s/[.]$//;
+		$tmp ~~ s/[.]/\\./g;
 		if (exists($Dangling_CNAME_Domains{$tmp}) && $Verbose) {
 		    if ($Dangling_CNAME_Domains{$tmp} != $option_modifier) {
 			$tmp1 = ($option_modifier == 0) ? "show" : "hide";
@@ -11519,7 +11517,7 @@ sub PARSE_ARGS {
 	    # default behavior by identifying all instances of
 	    # out-of-zone CNAME chains.
 	    #
-	    $Show_Chained_CNAMEs = ($option_modifier =~ /(?:no-show|hide)/) ? 0
+	    $Show_Chained_CNAMEs = ($option_modifier ~~ /(?:no-show|hide)/) ? 0
 									    : 1;
 
 	} elsif ($option eq 'debug') {
@@ -11553,7 +11551,7 @@ sub PARSE_ARGS {
 	    unless (defined($Debug_DIR)) {
 		$Debug_DIR = "/tmp";
 	    } else {
-		$Debug_DIR =~ s/\/+$//;
+		$Debug_DIR ~~ s/\/+$//;
 		$Debug_DIR = "/" if $Debug_DIR eq "";
 		unless (-d $Debug_DIR) {
 		    if ($Verbose) {
@@ -11618,7 +11616,7 @@ sub PARSE_ARGS {
 		$Display_Glueless_Limit = 1;
 	    } else {
 		$Display_Glueless_Limit = 0;
-		unless ($argument =~ /^\d+$/
+		unless ($argument ~~ /^\d+$/
 			&& $argument <= $Glueless_Upper_Limit) {
 		    print STDERR "Improper $original_option option; argument ",
 				 "must be a number in the range ",
@@ -11846,7 +11844,7 @@ EOT
 	    GIVE_UP() unless defined wantarray;
 	    $message_count++;
 	}
-    } elsif (!$Do_CNAME && $Multi_Homed_Mode =~ /[CP]/) {
+    } elsif (!$Do_CNAME && $Multi_Homed_Mode ~~ /[CP]/) {
 	print STDERR "`+m $Multi_Homed_Mode' option ",
 		     "incompatible with -A option.\n";
 	GIVE_UP() unless defined wantarray;
@@ -11864,12 +11862,12 @@ EOT
 	    $Search_Display_Dir = $Search_Dir;
 	}
 	unless (defined($Special_File)) {
-	    ($Special_File = $Domain) =~ s/[.].*//;
+	    ($Special_File = $Domain) ~~ s/[.].*//;
 	    $Special_File = "spcl.$Special_File";
 	}
 	$error = 0;
 	foreach $tmp (@alt_spcl_files) {
-	    ($file = $tmp) =~ s/.*spcl=//;
+	    ($file = $tmp) ~~ s/.*spcl=//;
 	    unless (-f "$Search_Dir/$file" && -r _) {
 		print STDERR "\n" if $error == 1;
 		print STDERR "Improper `spcl=' argument in option `$tmp'.\n",
@@ -11926,7 +11924,7 @@ EOT
 		$domain_arg = $c_Opt_Pat_Rel{$tmp};
 		$argument = 1 if lc($domain_arg) eq lc($Domain);
 		if ($argument) {
-		    ($message = <<"EOT") =~ s/^\s+\|//gm;
+		    ($message = <<"EOT") ~~ s/^\s+\|//gm;
 	    |The `$domain_arg' domain name argument is ambiguously
 	    |specified.  Its appearance in the -d option is incompatible
 	    |with a simultaneous specification in the -c option.
@@ -11941,7 +11939,7 @@ EOT
 	if (@e_Opt_Patterns) {
 	    $argument = "";
 	    foreach $tmp (@e_Opt_Patterns) {
-		($domain_arg = $tmp) =~ s/\\[.]/./g;
+		($domain_arg = $tmp) ~~ s/\\[.]/./g;
 		if ($domain_arg eq lc($Domain)) {
 		    $argument = "-d option";
 		} else {
@@ -11957,7 +11955,7 @@ EOT
 		    }
 		}
 		if ($argument) {
-		    ($message = <<"EOT") =~ s/^\s+\|//gm;
+		    ($message = <<"EOT") ~~ s/^\s+\|//gm;
 	    |The `$domain_arg' domain name argument is ambiguously
 	    |specified.  Its appearance in a -e option is incompatible
 	    |with a simultaneous specification in the $argument.
@@ -11974,14 +11972,14 @@ EOT
 	    foreach $tmp (@p_Opt_Patterns) {
 		$domain_arg = $PTR_Pat_Rel{$tmp};
 		if (lc($domain_arg) eq lc($Domain)) {
-		    ($message = <<"EOT") =~ s/^\s+\|//gm;
+		    ($message = <<"EOT") ~~ s/^\s+\|//gm;
 	    |The `$domain_arg' domain name argument is ambiguously
 	    |specified.  Its appearance in the -d option is incompatible
 	    |with a simultaneous specification in the -p option.
 EOT
 		} elsif (exists($c_Opt_Pat_Rel{$tmp}) &&
-			 $c_Opt_Spec{$tmp}{MODE} =~ /I/) {
-		    ($message = <<"EOT") =~ s/^\s+\|//gm;
+			 $c_Opt_Spec{$tmp}{MODE} ~~ /I/) {
+		    ($message = <<"EOT") ~~ s/^\s+\|//gm;
 	    |Improper `-p $domain_arg' option; the domain name
 	    |matches that of a -c option which has been flagged with `mode=I'
 	    |to indicate that it is an intra-zone subdomain of the -d option.
@@ -12161,7 +12159,7 @@ sub CHECK_NET {
     $cidr = ${$cidr_ref};
     $mask = ${$mask_ref};
     if (defined($cidr)) {
-	unless ($cidr =~ /^\d+$/) {
+	unless ($cidr ~~ /^\d+$/) {
 	    $error .= " Invalid CIDR specification.\n";
 	} elsif ($cidr < 1 || $cidr > 32) {
 	    $error .= " Invalid CIDR size (must be 1 to 32).\n";
@@ -12470,8 +12468,8 @@ sub SUBNETS {
 	push(@subnets, $network);	# the network itself is always first
 	return @subnets unless $cidr_size % 8;
 	$base_net = $last_octet = $network;
-	$base_net =~ s/[.]\d+$//;
-	$last_octet =~ s/.+[.]//;
+	$base_net ~~ s/[.]\d+$//;
+	$last_octet ~~ s/.+[.]//;
 	if ($cidr_size < 16) {
 	    $additional_units = (2 ** (16 - $cidr_size)) - 1;
 	} else {
@@ -12502,8 +12500,8 @@ sub SUBNETS {
 	#                                 db.192.6.19.97
 	#
 	$base_net = $last_octet = $network;
-	$base_net =~ s/[.]\d+$//;
-	$last_octet =~ s/.+[.]//;
+	$base_net ~~ s/[.]\d+$//;
+	$last_octet ~~ s/.+[.]//;
 	if ($cidr_size == 32) {
 	    push(@subnets, "$base_net:$last_octet");
 	} else {
@@ -12561,7 +12559,7 @@ sub FIXUP {
 	$RFC_952 = 0;
 	$RFC_1123 = 1;		# SOA, NS, and MX RRs should be RFC-compliant
 	$fixup_def_action = ($DefAction eq "Warning") ? "Warning" : "Error";
-	$Domain =~ s/[.]$//;
+	$Domain ~~ s/[.]$//;
 	#
 	# Although the owner fields of SOA records, i.e., delegated domain
 	# names, are not subject to RFC-1123 name checking, the fact that
@@ -12588,7 +12586,7 @@ sub FIXUP {
 	    #
 	    $RespHost = ($Host eq '@') ? $Domain : $Host;
 	} else {
-	    ($tmp = $Host) =~ s/[.]$//;
+	    ($tmp = $Host) ~~ s/[.]$//;
 	    $error = CHECK_NAME($tmp, 'A');
 	    if ($error) {
 		$status = $error if $error > $status;
@@ -12596,12 +12594,12 @@ sub FIXUP {
 		print STDERR "$action: SOA host name `$Host' (-h) ",
 			     "is invalid.\n";
 	    }
-	    if ($Host =~ /[.]/) {
+	    if ($Host ~~ /[.]/) {
 		$RespHost = "$Host.";
 	    } else {
 		$RespHost = "$Host.$Domain.";
 	    }
-	    $RespHost =~ s/[.][.]/./g;		# remove any redundant "."
+	    $RespHost ~~ s/[.][.]/./g;		# remove any redundant "."
 	}
 
 	# As of BIND 4.9.4, RNAMEs in SOA and RP can have any printable
@@ -12611,12 +12609,12 @@ sub FIXUP {
 	# of the `h2n' program is to stick with the original specification
 	# of interpreting the first unescaped "." as the implied "@" character.
 	#
-	if ($User =~ /@/) {
-	    $User =~ s/\\@/@/;			    # unescape the "@"
+	if ($User ~~ /@/) {
+	    $User ~~ s/\\@/@/;			    # unescape the "@"
 	    ($user_part, $domain_part) = split(/@/, $User, 2);
-	    $user_part =~ s/[.]/\\./g;		    # escape "." in username
-	    1 while $user_part =~ s/\\\\/\\/g;	    # remove redundancies
-	    if ($domain_part =~ /[.]/) {	    # multiple domain labels
+	    $user_part ~~ s/[.]/\\./g;		    # escape "." in username
+	    1 while $user_part ~~ s/\\\\/\\/g;	    # remove redundancies
+	    if ($domain_part ~~ /[.]/) {	    # multiple domain labels
 		$domain_part .= ".";		    # append root domain
 	    } else {
 		$domain_part .= ".$Domain.";	    # append our domain name
@@ -12624,20 +12622,20 @@ sub FIXUP {
 	    $RespUser = "$user_part.$domain_part";  # join w/ unescaped "."
 	} elsif ($User !~ /[.]$/) {		    # already RNAME if no
 	    $user_part = $User;			    # "@" and trailing "."
-	    $user_part =~ s/[.]/\\./g;		    # escape "." in username
-	    1 while $user_part =~ s/\\\\/\\/g;	    # remove redundancies
+	    $user_part ~~ s/[.]/\\./g;		    # escape "." in username
+	    1 while $user_part ~~ s/\\\\/\\/g;	    # remove redundancies
 	    $RespUser = "$user_part.$Domain.";	    # join w/ unescaped "."
 	} else {
 	    $RespUser = $User;
 	}
-	$RespUser =~ s/[.][.]/./g;
+	$RespUser ~~ s/[.][.]/./g;
 	#
 	# Final inspection.
 	#
 	if ($RespUser ne ".") {
 	    $tmp = $RespUser;
-	    $tmp =~ s/(?:\\[.]|[^.])*[.]//;	# strip first label
-	    $tmp =~ s/[.]$//;			# strip last dot
+	    $tmp ~~ s/(?:\\[.]|[^.])*[.]//;	# strip first label
+	    $tmp ~~ s/[.]$//;			# strip last dot
 	    unless ($tmp) {
 		$status = 3;			# flag this as a fatal error
 		print STDERR "Error: SOA RNAME field `$RespUser' (-u) ",
@@ -12657,7 +12655,7 @@ sub FIXUP {
 	#
 	foreach $s (@Full_Servers) {
 	    $s = $Domain if $s eq '@';
-	    ($tmp = $s) =~ s/[.]$//;
+	    ($tmp = $s) ~~ s/[.]$//;
 	    $error = ($s) ? CHECK_NAME($tmp, 'A') : 0;
 	    if ($error) {
 		$status = $error if $error > $status;
@@ -12665,8 +12663,8 @@ sub FIXUP {
 		print STDERR "$action: Name server name `$s' (-s) ",
 			     "is invalid.\n";
 	    }
-	    $s .= ".$Domain" unless $s =~ /[.]/;
-	    $s .= "." unless $s =~ /[.]$/;
+	    $s .= ".$Domain" unless $s ~~ /[.]/;
+	    $s .= "." unless $s ~~ /[.]$/;
 	    if ($action ne "Error" && exists($server_name{lc($s)})) {
 		print STDERR "Ignoring redundant name server (-s): $s\n";
 	    } else {
@@ -12682,7 +12680,7 @@ sub FIXUP {
 	    %server_name = ();
 	    foreach $s (@temp) {
 		$s = $Domain if $s eq '@';
-		($tmp = $s) =~ s/[.]$//;
+		($tmp = $s) ~~ s/[.]$//;
 		$error = ($s) ? CHECK_NAME($tmp, 'A') : 0;
 		if ($error) {
 		    $status = $error if $error > $status;
@@ -12690,8 +12688,8 @@ sub FIXUP {
 		    print STDERR "$action: Name server name `$s' (-S) ",
 				 "is invalid.\n";
 		}
-		$s .= ".$Domain" unless $s =~ /[.]/;
-		$s .= "." unless $s =~ /[.]$/;
+		$s .= ".$Domain" unless $s ~~ /[.]/;
+		$s .= "." unless $s ~~ /[.]$/;
 		if ($action ne "Error" && exists($server_name{lc($s)})) {
 		    print STDERR "Ignoring redundant name server (-S): $s\n";
 		} else {
@@ -12722,7 +12720,7 @@ sub FIXUP {
 	    %server_name = ();
 	    foreach $s (@MX) {
 		($preference, $mxhost) = split(' ', $s, 2);
-		$mxhost =~ s/[.]$//;
+		$mxhost ~~ s/[.]$//;
 		$data = ($mxhost eq '@') ? $Domain : $mxhost;
 		$error = ($data) ? CHECK_NAME($data, 'MX') : 0;
 		if ($error) {
@@ -12731,15 +12729,15 @@ sub FIXUP {
 		    print STDERR "$action: MX hostname `$mxhost' (-m) ",
 				 "is invalid.\n";
 		}
-		if ($mxhost =~ /$Domain_Pattern$/o) {
+		if ($mxhost ~~ /$Domain_Pattern$/o) {
 		    #
 		    # Prevent unnecessary verbosity by keeping in-domain
 		    # names in origin-relative format since the MX records
 		    # will appear only in the forward-mapping file.
 		    #
-		    $mxhost =~ s/$Domain_Pattern$//o;
+		    $mxhost ~~ s/$Domain_Pattern$//o;
 		} else {
-		    $mxhost .= "." if $mxhost =~ /[.]/;
+		    $mxhost .= "." if $mxhost ~~ /[.]/;
 		}
 		$s = "$preference $mxhost";
 		$mxhost = ($mxhost eq '@') ? lc("$Domain.") : lc($mxhost);
@@ -12758,7 +12756,7 @@ sub FIXUP {
 		#
 		scalar(keys(%server_name));
 		while (($mxhost, $data) = each %server_name) {
-		    next if $data =~ /^\d+$/;
+		    next if $data ~~ /^\d+$/;
 		    @temp = sort { $a <=> $b } split(' ', $data);
 		    $server_name{$mxhost} = $temp[0];
 		}
@@ -12804,14 +12802,14 @@ sub FIXUP {
 		foreach $rrtype (keys %Apex_RRs) {
 		    foreach $data (@{ $Apex_RRs{$rrtype} }) {
 			$rdata = $data;
-			if ($rdata =~ /\n$/) {
+			if ($rdata ~~ /\n$/) {
 			    #
 			    # A newline appended to the "$rdata" string is a
 			    # data structure signal to indicate that this is
 			    # a continuation line of a multi-line record.
 			    #
-			    $rdata =~ s/\n$//;
-			    if ($rdata =~ /\n$/) {
+			    $rdata ~~ s/\n$//;
+			    if ($rdata ~~ /\n$/) {
 				#
 				# Besides this being a continuation line,
 				# a second appended newline signifies that
@@ -12843,12 +12841,12 @@ sub FIXUP {
 		#
 		while (($lc_alias, $alias) = each %Apex_Aliases) {
 		    ($alias, $ttl) = split(' ', $alias, 2);
-		    if ($alias =~ /$Domain_Pattern[.]$/o) {
+		    if ($alias ~~ /$Domain_Pattern[.]$/o) {
 			#
 			# Prevent unnecessary verbosity by keeping in-domain
 			# names in origin-relative format.
 			#
-			$alias =~ s/$Domain_Pattern[.]$//o;
+			$alias ~~ s/$Domain_Pattern[.]$//o;
 			$Apex_Aliases{$lc_alias} = "$alias $ttl";
 		    }
 		    $tmp = sprintf("%s%s\tCNAME\t\@\n", TAB($alias, 16), $ttl);
@@ -12895,7 +12893,7 @@ sub FIXUP {
 	    if (($status == 2 && $fixup_def_action eq "Error") || $status > 2) {
 		&GIVE_UP;
 	    } else {
-		($message = <<"EOT") =~ s/^\s+\|//gm;
+		($message = <<"EOT") ~~ s/^\s+\|//gm;
     |Attention! Because `h2n' is running with an error-checking level of
     |           `$Check_Level' (-I option), it will go ahead and process the
     |           host table despite the above warning(s).  It is very important,
@@ -12936,7 +12934,7 @@ EOT
 	    #
 	    @unsorted = ();
 	    foreach $tmp (@temp) {
-		if ($Domain =~ /[.]$tmp$/i) {
+		if ($Domain ~~ /[.]$tmp$/i) {
 		    #
 		    # The domain of a -c or -p option is a parent domain
 		    # of that specified in the -d option.  Add a special
@@ -12958,13 +12956,13 @@ EOT
 		    $c_Opt_Spec{$tmp}{RANK} = $j;
 		    $j--;
 		}
-		($domain_part = $tmp) =~ s/\\[.]/./g;
+		($domain_part = $tmp) ~~ s/\\[.]/./g;
 		push(@unsorted, join('.', reverse(split(/[.]/, $domain_part))));
 	    }
 	    @sorted = sort { $b cmp $a } @unsorted;
 	    foreach $tmp (@sorted) {
 		$tmp = join('.', reverse(split(/[.]/, $tmp)));
-		$tmp =~ s/[.]/\\./g;
+		$tmp ~~ s/[.]/\\./g;
 	    }
 	    if ($i == 1) {
 		@c_Opt_Patterns = @sorted;
@@ -12981,14 +12979,14 @@ EOT
 	    #
 	    @unsorted = ();
 	    foreach $epat (@e_Opt_Patterns) {
-		($domain_part = ".$epat") =~ s/\\[.]/./g;
+		($domain_part = ".$epat") ~~ s/\\[.]/./g;
 		push(@unsorted, join('.', reverse(split(/[.]/, $domain_part))));
 	    }
 	    @sorted = sort { $a cmp $b } @unsorted;  # ascending order this time
 	    $i = 0;
 	    until ($i >= $#sorted) {
-		($domain_part = $sorted[$i]) =~ s/[.]/\\./g;
-		while ($i < $#sorted && $sorted[$i + 1] =~ /^$domain_part/) {
+		($domain_part = $sorted[$i]) ~~ s/[.]/\\./g;
+		while ($i < $#sorted && $sorted[$i + 1] ~~ /^$domain_part/) {
 		    #
 		    # Remove the array element that holds the unnecessary
 		    # subdomain or duplicate domain name.
@@ -12999,9 +12997,9 @@ EOT
 	    }
 	    if (@sorted < @e_Opt_Patterns) {
 		foreach $epat (@sorted) {
-		    $epat =~ s/[.]$//;
+		    $epat ~~ s/[.]$//;
 		    $epat = join('.', reverse(split(/[.]/, $epat)));
-		    $epat =~ s/[.]/\\./g;
+		    $epat ~~ s/[.]/\\./g;
 		}
 		@e_Opt_Patterns = @sorted;
 	    }
@@ -13015,20 +13013,20 @@ EOT
 	    #
 	    foreach $epat (@e_Opt_Patterns) {
 		@unsorted = ();
-		if ($Domain =~ /[.]$epat$/i) {
+		if ($Domain ~~ /[.]$epat$/i) {
 		    push(@unsorted,
 			 join('.', reverse(split(/[.]/, ".$Domain"))));
 		}
 		foreach $tmp (@c_Opt_Patterns) {
-		    ($domain_part = ".$tmp") =~ s/\\[.]/./g;
-		    if ($domain_part =~ /[.]$epat$/) {
+		    ($domain_part = ".$tmp") ~~ s/\\[.]/./g;
+		    if ($domain_part ~~ /[.]$epat$/) {
 			push(@unsorted,
 			     join('.', reverse(split(/[.]/, $domain_part))));
 		    }
 		}
 		foreach $tmp (@p_Opt_Patterns) {
-		    ($domain_part = ".$tmp") =~ s/\\[.]/./g;
-		    if ($domain_part =~ /[.]$epat$/) {
+		    ($domain_part = ".$tmp") ~~ s/\\[.]/./g;
+		    if ($domain_part ~~ /[.]$epat$/) {
 			push(@unsorted,
 			     join('.', reverse(split(/[.]/, $domain_part))));
 		    }
@@ -13045,9 +13043,9 @@ EOT
 		    @sorted = sort { $a cmp $b } @unsorted;
 		    $i = 0;
 		    until ($i >= $#sorted) {
-			($domain_part = $sorted[$i]) =~ s/[.]/\\./g;
+			($domain_part = $sorted[$i]) ~~ s/[.]/\\./g;
 			while ($i < $#sorted
-			       && $sorted[$i + 1] =~ /^$domain_part/) {
+			       && $sorted[$i + 1] ~~ /^$domain_part/) {
 			    splice(@sorted, ($i + 1), 1);
 			}
 			$i++;
@@ -13055,10 +13053,10 @@ EOT
 		    $domain_part = "";
 		    foreach $tmp (@sorted) {
 			$tmp = "." . join('.', reverse(split(/[.]/, $tmp)));
-			$tmp =~ s/[.]/\\./g;
+			$tmp ~~ s/[.]/\\./g;
 			$domain_part .= "|$tmp";
 		    }
-		    $domain_part =~ s/^\|//;
+		    $domain_part ~~ s/^\|//;
 		    $e_Opt_Pat_Exceptions{$epat} = $domain_part;
 		}
 	    }
@@ -13079,7 +13077,7 @@ EOT
 	#
 	# Set an appropriate default value.
 	#
-	if ($Verify_Mode && $V_Opt_Domains[0] =~ /[.]in-addr[.]arpa[.]$/) {
+	if ($Verify_Mode && $V_Opt_Domains[0] ~~ /[.]in-addr[.]arpa[.]$/) {
 	    $Show_Dangling_CNAMEs = 0;
 	} elsif ($Audit) {
 	    $Show_Dangling_CNAMEs = 1;
@@ -13104,14 +13102,14 @@ EOT
 	    foreach $cname_pat (keys(%Dangling_CNAME_Domains)) {
 		$flag = $Dangling_CNAME_Domains{$cname_pat};
 		if ($i == 0 && exists($c_Opt_Spec{$cname_pat})
-			    && $c_Opt_Spec{$cname_pat}{MODE} =~ /I/) {
+			    && $c_Opt_Spec{$cname_pat}{MODE} ~~ /I/) {
 		    if ($flag == 1) {
 			#
 			# Issue a warning if "-show" is cancelled.  Stay silent
 			# about "-hide" since it represents the cancellation of
 			# an option that's effectively redundant.
 			#
-			($tmp = $cname_pat) =~ s/\\[.]/./g;
+			($tmp = $cname_pat) ~~ s/\\[.]/./g;
 			print STDERR "Warning: The `-show-dangling-cnames ",
 				     "$tmp'\n         option is being ",
 				     "cancelled due to the fact that this ",
@@ -13143,16 +13141,16 @@ EOT
 		#
 		@unsorted = ();
 		foreach $cname_pat (@temp) {
-		    ($domain_part = ".$cname_pat") =~ s/\\[.]/./g;
+		    ($domain_part = ".$cname_pat") ~~ s/\\[.]/./g;
 		    push(@unsorted,
 			 join('.', reverse(split(/[.]/, $domain_part))));
 		}
 		@sorted = sort { $a cmp $b } @unsorted;  # ascending order
 		$j = 0;
 		until ($j >= $#sorted) {
-		    ($domain_part = $sorted[$j]) =~ s/[.]/\\./g;
+		    ($domain_part = $sorted[$j]) ~~ s/[.]/\\./g;
 		    while ($j < $#sorted
-			   && $sorted[$j + 1] =~ /^$domain_part/) {
+			   && $sorted[$j + 1] ~~ /^$domain_part/) {
 			#
 			# Remove the array element that holds the unnecessary
 			# subdomain or duplicate domain name.
@@ -13163,10 +13161,10 @@ EOT
 		}
 		if (@sorted < @temp) {
 		    foreach $cname_pat (@sorted) {
-			$cname_pat =~ s/[.]$//;
+			$cname_pat ~~ s/[.]$//;
 			$cname_pat = join('.',
 					  reverse(split(/[.]/, $cname_pat)));
-			$cname_pat =~ s/[.]/\\./g;
+			$cname_pat ~~ s/[.]/\\./g;
 		    }
 		    @temp = @sorted;
 		}
@@ -13181,13 +13179,13 @@ EOT
 	#
 	@unsorted = ();
 	foreach $tmp (@Dangling_CNAME_Domains) {
-	    ($domain_part = $tmp) =~ s/\\[.]/./g;
+	    ($domain_part = $tmp) ~~ s/\\[.]/./g;
 	    push(@unsorted, join('.', reverse(split(/[.]/, $domain_part))));
 	}
 	@sorted = sort { $b cmp $a } @unsorted;
 	foreach $tmp (@sorted) {
 	    $tmp = join('.', reverse(split(/[.]/, $tmp)));
-	    $tmp =~ s/[.]/\\./g;
+	    $tmp ~~ s/[.]/\\./g;
 	}
 	@Dangling_CNAME_Domains = @sorted;
     }
@@ -13423,7 +13421,7 @@ sub GET_BIND_VERSION {
 	    if (/^;.+HEADER.+opcode: QUERY, status: ([^,]+)/) {
 		$status = $1;
 		if ($status ne 'NOERROR') {
-		    if ($status =~ /^(?:NOTIMPL?|FORMERR)$/) {
+		    if ($status ~~ /^(?:NOTIMPL?|FORMERR)$/) {
 			#
 			# We are probably dealing with a non-BIND name server.
 			# Microsoft -> NOTIMP
@@ -13437,25 +13435,25 @@ sub GET_BIND_VERSION {
 		}
 	    } elsif (/^VERSION[.]BIND[.]\s+.*TXT\s+\"([^\"]*)/i) {
 		$BIND_Version = $1;
-		if ($BIND_Version =~ /\\$/) {
-		    $BIND_Version =~ s/(\s+)\\$/$1/;  # remove pre-spaced escape
-		    $BIND_Version =~ s/\\$/ /;	      # escape -> space char.
+		if ($BIND_Version ~~ /\\$/) {
+		    $BIND_Version ~~ s/(\s+)\\$/$1/;  # remove pre-spaced escape
+		    $BIND_Version ~~ s/\\$/ /;	      # escape -> space char.
 		    $continuation_line = "1";
 		    next;
 		} else {
-		    $BIND_Version = "unavailable" if $BIND_Version =~ /^\s*$/;
+		    $BIND_Version = "unavailable" if $BIND_Version ~~ /^\s*$/;
 		    last;
 		}
 	    } elsif ($continuation_line && /([^\"]*)/) {
 		$continuation_line = $1;
-		$continuation_line =~ s/^\s+//;
+		$continuation_line ~~ s/^\s+//;
 		$BIND_Version .= $continuation_line;
-		if ($BIND_Version =~ /\\$/) {
-		    $BIND_Version =~ s/(\s+)\\$/$1/;
-		    $BIND_Version =~ s/\\$/ /;
+		if ($BIND_Version ~~ /\\$/) {
+		    $BIND_Version ~~ s/(\s+)\\$/$1/;
+		    $BIND_Version ~~ s/\\$/ /;
 		    next;
 		} else {
-		    $BIND_Version = "unavailable" if $BIND_Version =~ /^\s*$/;
+		    $BIND_Version = "unavailable" if $BIND_Version ~~ /^\s*$/;
 		    last;
 		}
 	    }
@@ -13464,7 +13462,7 @@ sub GET_BIND_VERSION {
 	return unless $status eq "NOERROR";
     }
 
-    if ($BIND_Version =~ /^(\d+)[.](\d+)([.](\d+))?(.*)/) {
+    if ($BIND_Version ~~ /^(\d+)[.](\d+)([.](\d+))?(.*)/) {
 	$major_version = (defined $1) ? $1 : 0;
 	$minor_version = (defined $2) ? $2 : 0;
 	$patch_version = (defined $4) ? $4 : 0;
@@ -13472,7 +13470,7 @@ sub GET_BIND_VERSION {
 	$BIND_Version_Num = (10000 * $major_version)
 			    + (100 * $minor_version) + $patch_version;
     }
-    if ($BIND_Version_Num < 90000 && $BIND_Version =~ /[48][.]\d/) {
+    if ($BIND_Version_Num < 90000 && $BIND_Version ~~ /[48][.]\d/) {
 	#
 	# See if "$BIND_Version" resembles the format of a standard BIND
 	# version string.  If so, we'll massage the text a bit and check
@@ -13494,7 +13492,7 @@ sub GET_BIND_VERSION {
 	    s/^8.2.3-P.*/8.2.3-T/;		# standardize 8.2.3-T?? versions
 	}
 	if ($BIND_Version_Num == 0
-	    && $tmp_version =~ /^(\d+)[.](\d+)([.](\d+))?/) {
+	    && $tmp_version ~~ /^(\d+)[.](\d+)([.](\d+))?/) {
 	    #
 	    # Now that the customized version string has undergone an
 	    # attempted cleanup, make another stab at determining the
@@ -13533,7 +13531,7 @@ sub GET_BIND_VERSION {
 	    ($BIND_Version_Num >= 80300 && $BIND_Version_Num <= 80303)) {
 	    $bind_bugs .= "BIND: Remote Execution of Code, ";
 	}
-	if ($bind_bugs =~ /(?:LIBRESOLV|BIND): /) {
+	if ($bind_bugs ~~ /(?:LIBRESOLV|BIND): /) {
 	    $cert_url_refs .= "     $CERT_URL_buf_DoS,\n";
 	}
 	if ((($BIND_Version_Num >= 80000 && $BIND_Version_Num < 80307) &&
@@ -13581,25 +13579,25 @@ sub GET_BIND_VERSION {
 	}
     }
     if ($cert_url_refs) {
-	$cert_url_refs =~ s/,\n$//;
-	unless ($cert_url_refs =~ /,/) {
+	$cert_url_refs ~~ s/,\n$//;
+	unless ($cert_url_refs ~~ /,/) {
 	    #
 	    # Just one CERT advisory to report.
 	    #
-	    $bind_bugs =~ s/, $//;
+	    $bind_bugs ~~ s/, $//;
 	    $bind_bugs = $bind48_bug_tokens . $bind_bugs;
 	    $BIND_Ver_Msg = " $bind_bugs.\n"
 			  . " See $ISC_URL and\n"
 			  . "$cert_url_refs for details.";
 	} else {
 	    if ($bind48_bug_tokens) {
-		$bind48_bug_tokens =~ s/,? &/,/;
+		$bind48_bug_tokens ~~ s/,? &/,/;
 		$bind48_bug_tokens .= ",\n ";
 	    }
-	    $bind_bugs =~ s/([^,]+,[^,]+,)/$1\n/gm;	# Insert newline after
-	    $bind_bugs =~ s/,?. $//s;			# every other entry.
+	    $bind_bugs ~~ s/([^,]+,[^,]+,)/$1\n/gm;	# Insert newline after
+	    $bind_bugs ~~ s/,?. $//s;			# every other entry.
 	    $bind_bugs = $bind48_bug_tokens . $bind_bugs;
-	    $cert_url_refs =~ s/(.+),\n(.+)/$1, and\n$2/s;
+	    $cert_url_refs ~~ s/(.+),\n(.+)/$1, and\n$2/s;
 	    $BIND_Ver_Msg = " $bind_bugs.\n"
 			  . " See $ISC_URL,\n"
 			  . "$cert_url_refs for details.";
@@ -13663,7 +13661,7 @@ sub READ_RCFILE {
 			$first_net_token = 0;
 		    }
 		    s/^LOCAL-NETWORKS\s*=\s*//i;
-		    ($buffer = $_) =~ s/,/ /g;
+		    ($buffer = $_) ~~ s/,/ /g;
 		    while ($buffer) {
 			($data, $buffer) = split(' ', $buffer, 2);
 			($data, $subnet_mask) = split(/:/, $data, 2);
@@ -13722,7 +13720,7 @@ sub READ_RCFILE {
 
 		} elsif (/^DIG-UTILITY\s*=/i) {
 		    s/^DIG-UTILITY\s*=\s*//i;
-		    if ($_ =~ /\//) {
+		    if ($_ ~~ /\//) {
 			if (! -e $_) {
 			    print STDERR "Non-existent file for DIG-UTILITY ",
 					 "at line $line_num\nin configuration ",
@@ -13740,7 +13738,7 @@ sub READ_RCFILE {
 
 		} elsif (/^CHECK_DEL-UTILITY\s*=/i) {
 		    s/^CHECK_DEL-UTILITY\s*=\s*//i;
-		    if ($_ =~ /\//) {
+		    if ($_ ~~ /\//) {
 			if (! -e $_) {
 			    print STDERR "Non-existent file for ",
 					 "CHECK_DEL-UTILITY at line ",
@@ -13828,7 +13826,7 @@ sub READ_RCFILE {
 		    # submission to the PARSE_ARGS() subroutine.
 		    #
 		    unless ($options_file) {
-			($data = $file) =~ s/.*\/[.]?//;
+			($data = $file) ~~ s/.*\/[.]?//;
 			$options_file = "$Debug_DIR/${data}_options";
 			unless (OPEN(*OPT, '>', $options_file)) {
 			    print STDERR "While processing command-line ",
@@ -14435,7 +14433,7 @@ sub GEN_BOOT {
 	foreach $line (@Boot_Msgs) {
 	    ($bootdom, $bootdb) = split(' ', $line, 2);
 	    $bootzone = $bootdb;
-	    $bootdb =~ s/^db/bak/i;
+	    $bootdb ~~ s/^db/bak/i;
 	    if ($New_Fmt_Conffile) {
 		$format = "zone \"%s\" {\n\ttype slave;\n\tfile \"%s\";\n"
 			. "\tmasters { %s };";
@@ -14503,11 +14501,11 @@ sub DELEGATE_INFO {
 	if ($file eq "DOMAIN") {	# Tally up NS records, save in temp file
 	    $zone = "$Domain.";
 	} else {
-	    ($zone = REVERSE($file)) =~ s/DB//;
+	    ($zone = REVERSE($file)) ~~ s/DB//;
 	    $zone .= "in-addr.arpa.";
 	}
 	$in_zone = $zone;		# For ID'ing in-zone NS RRs needing glue
-	$in_zone =~ s/[.]/\\./g;
+	$in_zone ~~ s/[.]/\\./g;
 
 	foreach $s (@Full_Servers) {
 	    printf DELEGATE "%s%s\tNS\t%s\n",
@@ -14515,7 +14513,7 @@ sub DELEGATE_INFO {
 						   : TAB($zone, 32)),
 			    $ttl, $s;
 	    $Owner_Field = $zone;
-	    if ($s =~ /$in_zone$/) {
+	    if ($s ~~ /$in_zone$/) {
 		push(@ns_need_glue, $s);
 	    }
 	}
@@ -14526,7 +14524,7 @@ sub DELEGATE_INFO {
 						       : TAB($zone, 32)),
 				$ttl, $s;
 		$Owner_Field = $zone;
-		if ($s =~ /$in_zone$/) {
+		if ($s ~~ /$in_zone$/) {
 		    push(@ns_need_glue, $s);
 		}
 	    }
@@ -14539,7 +14537,7 @@ sub DELEGATE_INFO {
 						   : TAB($zone, 32)),
 			    $ttl, $RespHost;
 	    $Owner_Field = $zone;
-	    if ($RespHost =~ /$in_zone$/) {
+	    if ($RespHost ~~ /$in_zone$/) {
 		push(@ns_need_glue, $RespHost);
 	    }
 	}
@@ -14571,7 +14569,7 @@ sub DELEGATE_INFO {
 		    # Get current owner name and make it a FQDN.
 		    #
 		    $owner = lc($1);
-		    $owner .= ".$origin" unless $owner =~ /[^\\][.]$/;
+		    $owner .= ".$origin" unless $owner ~~ /[^\\][.]$/;
 		}
 		if (/^(?:\S+)?\s+(\d+|(\d+[wdhms])+)?\s*    # Owner, TTL
 		    (?:IN)?\s*A\s+([.\d]+)/ix) {	    # class, type, RDATA
@@ -14582,11 +14580,11 @@ sub DELEGATE_INFO {
 		    } else {
 			$ttl = ($Ttl) ? $Ttl : $DefTtl;
 		    }
-		    ($addr_test = $addr) =~ s/[.]/\\./g;
+		    ($addr_test = $addr) ~~ s/[.]/\\./g;
 		    foreach $one (@ns_need_glue) {
 			next unless $owner eq $one;
 			if (exists($glue{$one})
-			    && $glue{$one} =~ / $addr_test:/) {
+			    && $glue{$one} ~~ / $addr_test:/) {
 			    if ($Verbose) {
 				print STDERR "Hmm, found a duplicate glue IP ",
 					     "for `$one [$addr].'\nIgnored ",
@@ -14655,9 +14653,9 @@ sub DELEGATE_INFO {
 	print DELFILE "; Warning: this version of BIND may be vulnerable ",
 		      "to the following bug(s):\n";
 	$BIND_Ver_Msg = "; $BIND_Ver_Msg";
-	$BIND_Ver_Msg =~ s/^ ($BIND_Bug_Titles)/;  $1/gmo;
-	$BIND_Ver_Msg =~ s/ See /; See /;
-	$BIND_Ver_Msg =~ s/     </;     </g;
+	$BIND_Ver_Msg ~~ s/^ ($BIND_Bug_Titles)/;  $1/gmo;
+	$BIND_Ver_Msg ~~ s/ See /; See /;
+	$BIND_Ver_Msg ~~ s/     </;     </g;
 	print DELFILE "$BIND_Ver_Msg\n;\n";
     }
     $pid = open(*CHECKIT, '-|');	# Causes fork.  Usual parent/child
