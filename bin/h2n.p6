@@ -207,9 +207,9 @@ my $Verify_Glueless_Limit = 3;
 #         not recognized.
 #
 my $RRtypes = "MX|A|CNAME|PTR|NS|AAAA|HINFO|RP|TXT|SRV|SOA|KEY|NSAP|NSAP-PTR|"
-	    . "NAPTR|AFSDB|RT|ISDN|X25|PX|LOC|CERT|KX|DNAME|WKS|M[BGR]|MINFO|"
-	    . "EID|NIMLOC|ATMA|GPOS|APL|SINK|SSHFP|DHCID|SPF|HIP|RRSIG|NSEC|"
-	    . "NSEC3|NSEC3PARAM|DS|DNSKEY|DLV|IPSECKEY|SIG|A6|TSIG|OPT|TKEY";
+	    ~ "NAPTR|AFSDB|RT|ISDN|X25|PX|LOC|CERT|KX|DNAME|WKS|M[BGR]|MINFO|"
+	    ~ "EID|NIMLOC|ATMA|GPOS|APL|SINK|SSHFP|DHCID|SPF|HIP|RRSIG|NSEC|"
+	    ~ "NSEC3|NSEC3PARAM|DS|DNSKEY|DLV|IPSECKEY|SIG|A6|TSIG|OPT|TKEY";
 
 # Catalog the RFC-2535 DNSSEC RR types (KEY, NXT, and SIG), as well as their
 # replacements from RFC-4034 (NSEC and RRSIG) that are allowed to share
@@ -297,8 +297,8 @@ my $IPv4_pattern =
 
 my $IPv6_pattern =
      '^((?=.*::.*)(::)?([0-9A-F]{1,4}(:(?=[0-9A-F])|(?!\2)(?!\5)(::)|\z)){0,7}|'
-   . '((?=.*::.*)(::)?([0-9A-F]{1,4}(:(?=[0-9A-F])|(?!\7)(?!\10)(::))){0,5})|'
-   . '(?:[0-9A-F]{1,4}:){7}[0-9A-F]{1,4})$';
+   ~ '((?=.*::.*)(::)?([0-9A-F]{1,4}(:(?=[0-9A-F])|(?!\7)(?!\10)(::))){0,5})|'
+   ~ '(?:[0-9A-F]{1,4}:){7}[0-9A-F]{1,4})$';
 
 
 my ($Audit_Domain, $BIND_Ver_Msg, $BIND_Version, $BIND_Version_Num, $Boot_Dir);
