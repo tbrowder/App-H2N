@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl6
 #
 #
 #    Copyright (c) 2010, Andris Kalnozols <andris@hpl.hp.com>

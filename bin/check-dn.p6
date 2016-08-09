@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl6
 #
 
 # This program checks for the availability of a domain name
@@ -303,4 +303,3 @@ sub CHECK_DNS_NAME {
     }
     return $error;
 }
-

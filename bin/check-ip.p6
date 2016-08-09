@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl6
 #
 
 # This program performs a DNS query for the PTR record
@@ -65,7 +65,7 @@ while ("true") {
 	$exit_status = 2;
 	next;
     }
-    
+
     $domain_name = $contact_name = "";
     #
     # If no error is encountered, the subroutine will return the
@@ -200,14 +200,13 @@ sub LOOKUP_IP_ADDR {
 	    # for the SOA record.
 	    # NOTE: No error message will be reported if the response
 	    #       to the SOA query has an empty Answer Section.
-	    # 
+	    #
 	    $zone = $authority[0]->name;
 	    $packet = $res->send($zone, "SOA");
 	    @answer = $packet->answer;
 	    $$contact_name = $answer[0]->rname if @answer;
 	}
     }
-    
+
     return $error;
 }
-

@@ -1,8 +1,8 @@
-#!/usr/bin/ksh
+#!/bin/bash
 #
 # This script runs under the ksh, POSIX, and bash shells.
 #
-# shopt -qs extglob	# Uncomment this line if running under the bash shell.
+shopt -qs extglob	# Uncomment this line if running under the bash shell.
 
 # NOTE: This script does not function with the current versions of
 #       BIND9 because that name server does not log a message when
@@ -174,4 +174,3 @@ printf "\n"
 rm $TMPDIR/folded_log_$$ $TMPDIR/syslog_part[0-9][0-9]
 
 exit 0
-

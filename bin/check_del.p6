@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl6
 #
 # check_del, v 1.20 11/16/1999 19:26:56 cricket
 # Enhanced to v1.32 17 December 2003 by Andris Kalnozols
@@ -272,7 +272,7 @@ sub CHECK_NS {
 	#       generation can be avoided by testing for the existence
 	#       of the first index before proceeding to test for the
 	#       simultaneous existence of both indices.
-	# 
+	#
 	$address = $NSaddr{$d_rdata}[$j];
 	if (exists($NotRunning{$d_rdata}) &&
 	    exists($NotRunning{$d_rdata}{$address})) {
@@ -392,4 +392,3 @@ sub CHECK_NS {
 	}
     }
 }
-

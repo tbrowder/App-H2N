@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl6
 #
 
 # This program validates a network specification in one of the
@@ -35,7 +35,7 @@
 #    1111xxxx.xxxxxxxx.xxxxxxxx.xxxxxxxx  Class E  240-255.x.x.x (experimental)
 #
 #    The original concept of network classes has given way to a
-#    more efficient way of allocating networks of IP addresses 
+#    more efficient way of allocating networks of IP addresses
 #    called Classless InterDomain Routing or CIDR.
 #
 #
@@ -47,36 +47,36 @@
 #      ------   ---------------   ----------   -------------
 #        /0     0.0.0.0           special wildcard mask used in ACLs
 #                                 to match any address to [0.0.0.0]
-#        /1     128.0.0.0           128 A      2,147,483,648  
-#        /2     192.0.0.0            64 A      1,073,741,824  
-#        /3     224.0.0.0            32 A        536,870,912  
-#        /4     240.0.0.0            16 A        268,435,456  
-#        /5     248.0.0.0             8 A        134,217,728  
-#        /6     252.0.0.0             4 A         67,108,864  
-#        /7     254.0.0.0             2 A         33,554,432 
-#        /8     255.0.0.0             1 A         16,777,216  
-#        /9     255.128.0.0         128 B          8,388,608  
-#        /10    255.192.0.0          64 B          4,194,304  
-#        /11    255.224.0.0          32 B          2,097,152  
-#        /12    255.240.0.0          16 B          1,048,576  
-#        /13    255.248.0.0           8 B            524,288  
-#        /14    255.252.0.0           4 B            262,144  
-#        /15    255.254.0.0           2 B            131,072  
-#        /16    255.255.0.0           1 B             65,536  
-#        /17    255.255.128.0       128 C             32,768  
-#        /18    255.255.192.0        64 C             16,384  
-#        /19    255.255.224.0        32 C              8,192  
-#        /20    255.255.240.0        16 C              4,096  
-#        /21    255.255.248.0         8 C              2,048  
-#        /22    255.255.252.0         4 C              1,024  
-#        /23    255.255.254.0         2 C                512 
-#        /24    255.255.255.0         1 C                256  
-#        /25    255.255.255.128    2 subnets             128  
-#        /26    255.255.255.192    4 subnets              64  
-#        /27    255.255.255.224    8 subnets              32  
-#        /28    255.255.255.240   16 subnets              16  
-#        /29    255.255.255.248   32 subnets               8  
-#        /30    255.255.255.252   64 subnets               4  
+#        /1     128.0.0.0           128 A      2,147,483,648
+#        /2     192.0.0.0            64 A      1,073,741,824
+#        /3     224.0.0.0            32 A        536,870,912
+#        /4     240.0.0.0            16 A        268,435,456
+#        /5     248.0.0.0             8 A        134,217,728
+#        /6     252.0.0.0             4 A         67,108,864
+#        /7     254.0.0.0             2 A         33,554,432
+#        /8     255.0.0.0             1 A         16,777,216
+#        /9     255.128.0.0         128 B          8,388,608
+#        /10    255.192.0.0          64 B          4,194,304
+#        /11    255.224.0.0          32 B          2,097,152
+#        /12    255.240.0.0          16 B          1,048,576
+#        /13    255.248.0.0           8 B            524,288
+#        /14    255.252.0.0           4 B            262,144
+#        /15    255.254.0.0           2 B            131,072
+#        /16    255.255.0.0           1 B             65,536
+#        /17    255.255.128.0       128 C             32,768
+#        /18    255.255.192.0        64 C             16,384
+#        /19    255.255.224.0        32 C              8,192
+#        /20    255.255.240.0        16 C              4,096
+#        /21    255.255.248.0         8 C              2,048
+#        /22    255.255.252.0         4 C              1,024
+#        /23    255.255.254.0         2 C                512
+#        /24    255.255.255.0         1 C                256
+#        /25    255.255.255.128    2 subnets             128
+#        /26    255.255.255.192    4 subnets              64
+#        /27    255.255.255.224    8 subnets              32
+#        /28    255.255.255.240   16 subnets              16
+#        /29    255.255.255.248   32 subnets               8
+#        /30    255.255.255.252   64 subnets               4
 #        /31    255.255.255.254       none                 2
 #        /32    255.255.255.255     1/256 C                1
 #
@@ -85,7 +85,7 @@
 #                      RFC-1918 Reserved Network Numbers
 #                      ---------------------------------
 #
-#  The following networks are reserved for use by entities which do not 
+#  The following networks are reserved for use by entities which do not
 #  require globally unique address space.  The obvious advantage for the
 #  Internet at large is the conservation of globally unique address space
 #  by not using it where global uniqueness is not required.
@@ -157,7 +157,7 @@ while ("true") {
 	#
 	# The global variables "$error" and "$exit_status"
 	# have already been set by the CHECK_NET subroutine.
-	# 
+	#
 	next;
     } else {
 	if ($cidr_in) {
@@ -379,4 +379,3 @@ sub CHECK_NET {
     }
     return ($network, $cidr, $mask);
 }
-

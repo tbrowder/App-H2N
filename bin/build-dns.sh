@@ -1,8 +1,8 @@
-#!/usr/bin/ksh
+#!/bin/bash
 #
 # This script runs under the ksh, POSIX, and bash shells.
 #
-# shopt -qs extglob	# Uncomment this line if running under the bash shell.
+shopt -qs extglob	# Uncomment this line if running under the bash shell.
 
 USAGE="\
 Usage: build-dns|check-dns|test-dns [[-c] [-f] [-q] [s] [-t]]\n\n\
@@ -215,7 +215,7 @@ function parse_d_option
     then
       forward_zone_file=${1#db=}		# override the default
       ((num_parms = $#))
-      shift $num_parms   
+      shift $num_parms
     else
       shift 1
     fi
@@ -335,7 +335,7 @@ function parse_n_option
 	domain_arg=${1#domain=}
 	domain_arg=${domain_arg%%+(.)}		# trim any trailing dot(s)
 	((num_parms = $#))
-	shift $num_parms   
+	shift $num_parms
       else
 	shift 1
       fi
@@ -801,7 +801,7 @@ function compare_data
       fi
     fi
   fi
-    
+
   # Look for all "$INCLUDE" statements that the passed file might
   # contain and call ourself recursively for each one that is found.
   #
@@ -872,7 +872,7 @@ function compare_data
     # discovered zone data difference would have caused an immediate
     # return from this function, the fact that we are here means
     # that the zone files are functionally identical.
-    # 
+    #
     return 1
   fi
 
@@ -1705,4 +1705,3 @@ echo "----- \`$program_name'$mode_comment finished at $(date)."
 echo
 
 exit 0
-
