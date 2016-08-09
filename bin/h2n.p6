@@ -326,7 +326,7 @@ autoflush STDOUT 1;		# Allows single-character output w/o newline.
 autoflush STDERR 1;		# Keeps STDERR output synchronized with STDOUT.
 
 READ_RCFILE();			# a way to override various built-in defaults
-PARSE_ARGS(@ARGV);		# overrides any options found in a CONF file
+PARSE_ARGS(@*ARGS);		# overrides any options found in a CONF file
 FIXUP();
 if ($Conf_Only) {
     #
@@ -342,15 +342,16 @@ $Audit = 0 if $Delegate;	# Prevent the following warning message if we
 				# version 9.0.0 happens to be in operation.
 
 if ($DiG_Version_Num == 90000 && ($Verify_Mode || $Audit)) {
-    ($Output_Msg = <<'EOT') ~~ s/^\s+\|//gm;
-    |
-    |The DiG utility found by `h2n' is version 9.0. It is unsupported
-    |due to its inability to echo batch file input.  Please replace it
-    |with another version of DiG from either BIND 8 or the most recent
-    |distribution of BIND 9.
-EOT
+    $Output_Msg = q:to/EOT/;
+
+    The DiG utility found by `h2n' is version 9.0. It is unsupported
+    due to its inability to echo batch file input.  Please replace it
+    with another version of DiG from either BIND 8 or the most recent
+    distribution of BIND 9.
+    EOT
+
     unless ($Verify_Mode) {
-	$Output_Msg .= "The auditing option has been disabled for this run.\n";
+	$Output_Msg ~= "The auditing option has been disabled for this run.\n";
 	$Audit = 0;
     }
     print STDERR "$Output_Msg\n";
@@ -404,8 +405,8 @@ if ($Delegate) {		# If called as "delegate" or with -D
 #
 if ($BIND_Ver_Msg) {
     ($Temp = $RespHost) ~~ s/[.]$//;
-    $BIND_Ver_Msg       ~~ s/ See /See /;
-    $BIND_Ver_Msg       ~~ s/     </    </g;
+    $BIND_Ver_Msg       ~~ s/' See '/'See '/;
+    $BIND_Ver_Msg       ~~ s:g/'     <'/'    <'/;
     print STDERR "\nWarning: $Temp (-h option) is running BIND ",
 		     "$BIND_Version.\n",
 		     "This version of BIND may be vulnerable to the ",
@@ -424,32 +425,32 @@ if ($Audit && $Verbose) {
     # AUDIT_RRs subroutine which itself needs to create still more
     # data structures.
     #
-    undef %Aliases;
-    undef %Comments;
-    undef %Deferred_PTR;
-    undef %Pending_PTR;
-    undef %c_Opt_Aliases;
-    undef %c_Opt_Spec;
-    undef %p_Opt_Mode_Spec;
-    undef %c_Opt_Pat_Rel;
-    undef %PTR_Pat_Rel;
-    undef %Comment_RRs if $Commentfile;
-    undef %DB_Filehandle;
-    undef %LRUtable;
-    undef %Net_Ranges;
-    undef %Net_Zones;
-    undef %Master_Zone_Opt;
-    undef %Slave_Zone_Opt;
-    undef @Boot_Opts;
-    undef @Conf_Logging;
-    undef @Conf_Opts;
-    undef @Global_Master_Zone_Opts;
-    undef @Global_Slave_Zone_Opts;
-    undef @Boot_Msgs;
-    undef @c_Opt_Patterns;
-    undef @p_Opt_Patterns;
-    undef @e_Opt_Patterns;
-    undef @Make_SOA;
+    undefine %Aliases;
+    undefine %Comments;
+    undefine %Deferred_PTR;
+    undefine %Pending_PTR;
+    undefine %c_Opt_Aliases;
+    undefine %c_Opt_Spec;
+    undefine %p_Opt_Mode_Spec;
+    undefine %c_Opt_Pat_Rel;
+    undefine %PTR_Pat_Rel;
+    undefine %Comment_RRs if $Commentfile;
+    undefine %DB_Filehandle;
+    undefine %LRUtable;
+    undefine %Net_Ranges;
+    undefine %Net_Zones;
+    undefine %Master_Zone_Opt;
+    undefine %Slave_Zone_Opt;
+    undefine @Boot_Opts;
+    undefine @Conf_Logging;
+    undefine @Conf_Opts;
+    undefine @Global_Master_Zone_Opts;
+    undefine @Global_Slave_Zone_Opts;
+    undefine @Boot_Msgs;
+    undefine @c_Opt_Patterns;
+    undefine @p_Opt_Patterns;
+    undefine @e_Opt_Patterns;
+    undefine @Make_SOA;
 
     # As a paranoid exercise, make sure the "$Data_Fname" variable
     # undergoes the same sanitation as is performed in the VERIFY_ZONE
@@ -458,10 +459,10 @@ if ($Audit && $Verbose) {
     #
     $Data_Fname = lc($Domain);		# override a -P option
     for ($Data_Fname) {
-	s/\\([<|>&\(\)\$\?@;'`])/$1/g;	# unescape special characters
-	s/[\/<|>&\[\(\)\$\?;'`]/%/g;	# change the problematic ones to "%"
-	s/\\\s/_/g;			# change white space into underscores
-	s/\\//g;			# remove remaining escape characters
+	s:g/\\([\<\|\>\&\(\)\$\?\@\;'\`])/$1/;	# unescape special characters
+	s:g/[\/\<\|\>\&\[\(\)\$\?\;\'\`]/\%/;	# change the problematic ones to "%"
+	s:g/\\\s/_/;			# change white space into underscores
+	s:g/\\//;			# remove remaining escape characters
     }
 
     print STDOUT "Checking NS, MX, and other RRs ",
